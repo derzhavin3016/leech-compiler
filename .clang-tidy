@@ -5,7 +5,8 @@ Checks: >
   clang-analyzer-*,
   -llvmlibc-*,
   -modernize-use-trailing-return-type,
-  -fuchsia-default-arguments-calls
+  -fuchsia-default-arguments-calls,
+  -google-build-using-namespace
 
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
