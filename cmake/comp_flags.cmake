@@ -21,33 +21,28 @@ set(SANITIZERS
     -fsanitize=vptr
     -fsized-deallocation)
 
-set(COMMON_WARNINGS -Wall -Wextra -Wpedantic
-                    -Wno-gnu-zero-variadic-macro-arguments)
-
-set(GCC_WARNINGS
+set(COMMON_WARNINGS
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wno-gnu-zero-variadic-macro-arguments
     -Weffc++
-    -Waggressive-loop-optimizations
-    -Wc++0x-compat
-    -Wc++11-compat
-    -Wc++14-compat
+    -Wc++17-compat
+    -Wc++-compat
     -Wcast-align
     -Wcast-qual
     -Wchar-subscripts
-    -Wconditionally-supported
     -Wconversion
     -Wctor-dtor-privacy
     -Wempty-body
-    # -Wfloat-equal
+    -Wfloat-equal
     -Wformat-nonliteral
     -Wformat-security
-    -Wformat-signedness
     -Wformat=2
     -Winline
-    # -Wlarger-than=8192
-    -Wlogical-op
-    # -Wmissing-declarations
+    -Wlarger-than=8192
+    -Wmissing-declarations
     -Wnon-virtual-dtor
-    -Wopenmp-simd
     -Woverloaded-virtual
     -Wpacked
     -Wpointer-arith
@@ -55,26 +50,33 @@ set(GCC_WARNINGS
     -Wshadow
     -Wsign-conversion
     -Wsign-promo
-    -Wstack-usage=8192
-    -Wstrict-null-sentinel
     -Wstrict-overflow=2
-    -Wsuggest-attribute=noreturn
-    -Wsuggest-final-methods
-    -Wsuggest-final-types
     -Wsuggest-override
     -Wswitch-default
-    # -Wswitch-enum
-    -Wsync-nand
+    -Wswitch-enum
     -Wundef
     -Wunreachable-code
     -Wunused
-    -Wuseless-cast
     -Wvariadic-macros
+    -Wmissing-field-initializers
+    -Wnarrowing
+    -Wold-style-cast
+    -Wvarargs)
+
+set(GCC_WARNINGS
     -Wno-literal-suffix
-    -Wno-missing-field-initializers
-    -Wno-narrowing
-    -Wno-old-style-cast
-    -Wno-varargs
+    -Wuseless-cast
+    -Wsync-nand
+    -Wsuggest-final-methods
+    -Wsuggest-final-types
+    -Wsuggest-attribute=noreturn
+    -Wstrict-null-sentinel
+    -Wstack-usage=8192
+    -Wopenmp-simd
+    -Wlogical-op
+    -Wconditionally-supported
+    -Wformat-signedness
+    -Waggressive-loop-optimizations
     -fcheck-new
     -fstack-protector
     -fstrict-overflow
