@@ -1,10 +1,12 @@
 ---
 Checks: >
+  *,
   clang-diagnostic-*,
-   clang-analyzer-*,
-   -llvmlibc-*,
-   -modernize-use-trailing-return-type,
-   *
+  clang-analyzer-*,
+  -llvmlibc-*,
+  -modernize-use-trailing-return-type,
+  -fuchsia-default-arguments-calls
+
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
 AnalyzeTemporaryDtors: false

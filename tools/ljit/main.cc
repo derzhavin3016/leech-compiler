@@ -1,6 +1,12 @@
 #include <iostream>
 
-int main()
+#include <CLI/CLI.hpp>
+
+int main(int argc, char *argv[])
 {
-  std::cout << "Jit!" << std::endl;
+  {
+    CLI::App app{"ljit: leech JIT"};
+
+    CLI11_PARSE(app, argc, argv);
+  }
 }
