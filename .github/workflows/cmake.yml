@@ -52,7 +52,8 @@ jobs:
             -DCMAKE_CXX_COMPILER=${{matrix.compiler}} \
             -DCMAKE_BUILD_TYPE=${{matrix.build_type}} \
             -DENABLE_WERROR=${{matrix.enable_werror}} \
-            -DSKIP_CLANG_FORMAT=ON
+            -DSKIP_CLANG_FORMAT=ON \
+            -DBUILD_TESTS=ON
       - name: Build
         # Build your program with the given configuration
         run: cmake --build ${{github.workspace}}/build --config ${{matrix.build_type}} -j
