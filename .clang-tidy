@@ -10,7 +10,8 @@ Checks: >
   -altera-struct-pack-align,
   -google-readability-braces-around-statements,
   -hicpp-braces-around-statements,
-  -altera-unroll-loops
+  -altera-unroll-loops,
+  -altera-id-dependent-backward-branch
 
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
