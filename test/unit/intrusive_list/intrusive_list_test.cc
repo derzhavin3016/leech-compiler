@@ -21,7 +21,7 @@ public:
   }
 };
 
-TEST(iList, fill)
+TEST(iList, fillAfter)
 {
   std::vector<ConcreteNode> storage;
   storage.reserve(10);
@@ -31,6 +31,26 @@ TEST(iList, fill)
 
   for (std::size_t i = 1; i < storage.size(); ++i)
     storage[i].insertAfter(storage[i - 1]);
+
+  const auto *pNode = &storage.front();
+  for (std::size_t i = 0; i < storage.size();
+       ++i, pNode = pNode->getNext<decltype(*pNode)>())
+  {
+    ASSERT_NE(pNode, nullptr);
+    EXPECT_EQ(storage[i].getElem(), pNode->getElem());
+  }
+}
+
+TEST(iList, fillBefore)
+{
+  std::vector<ConcreteNode> storage;
+  storage.reserve(10);
+
+  for (std::size_t i = 0; i < storage.capacity(); ++i)
+    storage.emplace_back(i * 5);
+
+  for (std::size_t i = 0; i < storage.size() - 1; ++i)
+    storage[i].insertBefore(storage[i + 1]);
 
   const auto *pNode = &storage.front();
   for (std::size_t i = 0; i < storage.size();
