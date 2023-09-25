@@ -1,41 +1,80 @@
 #ifndef LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 
+#include <stdexcept>
+#include <string_view>
+#include <type_traits>
+
 namespace ljit
 {
-class IntrusiveList
+struct IListError : public std::runtime_error
+{
+  explicit IListError(std::string_view msg) noexcept
+    : std::runtime_error(msg.data())
+  {}
+};
+
+class IntrusiveListNode
 {
 private:
-  IntrusiveList *m_prev = nullptr;
-  IntrusiveList *m_next = nullptr;
+  IntrusiveListNode *m_prev = nullptr;
+  IntrusiveListNode *m_next = nullptr;
+
+  template <class T>
+  using DeriverdPtrType = std::remove_reference_t<T> *;
+
+  template <class T>
+  using DerivedPtr = std::enable_if_t<
+    std::is_base_of_v<IntrusiveListNode, std::remove_reference_t<T>>,
+    DeriverdPtrType<T>>;
 
 public:
-  IntrusiveList() = default;
+  IntrusiveListNode() = default;
 
-  // NOLINTNEXTLINE(bugprone-easily-swappable-parameters)
-  explicit IntrusiveList(IntrusiveList *prev, IntrusiveList *next) noexcept
-    : m_prev(prev), m_next(next)
-  {}
+  IntrusiveListNode(const IntrusiveListNode &) = delete;
+  IntrusiveListNode(IntrusiveListNode &&) = default;
+  IntrusiveListNode &operator=(const IntrusiveListNode &) = delete;
+  IntrusiveListNode &operator=(IntrusiveListNode &&) = default;
+  virtual ~IntrusiveListNode() = default;
 
-  IntrusiveList(const IntrusiveList &) = delete;
-  IntrusiveList(IntrusiveList &&) = delete;
-  IntrusiveList &operator=(const IntrusiveList &) = delete;
-  IntrusiveList &operator=(IntrusiveList &&) = delete;
-  virtual ~IntrusiveList() = default;
+  template <class T = IntrusiveListNode>
+  [[nodiscard]] DerivedPtr<T> getNext() const noexcept
+  {
+    return static_cast<DeriverdPtrType<T>>(m_next);
+  }
+
+  template <class T = IntrusiveListNode>
+  [[nodiscard]] DerivedPtr<T> getPrev() const noexcept
+  {
+    return static_cast<DeriverdPtrType<T>>(m_prev);
+  }
+
+  void insertBefore(IntrusiveListNode &pos) noexcept;
+  void insertBefore(IntrusiveListNode *pos)
+  {
+    if (pos == nullptr)
+      throw IListError{"Trying to insert before NULL node"};
+    insertBefore(*pos);
+  }
+
+  void insertAfter(IntrusiveListNode &pos) noexcept;
+  void insertAfter(IntrusiveListNode *pos)
+  {
+    if (pos == nullptr)
+      throw IListError{"Trying to insert after NULL node"};
+    insertAfter(*pos);
+  }
 
 private:
-  [[nodiscard]] auto getNext() const noexcept
+  void setNext(IntrusiveListNode *next) noexcept
   {
-    return m_next;
+    m_next = next;
   }
 
-  [[nodiscard]] auto getPrev() const noexcept
+  void setPrev(IntrusiveListNode *prev) noexcept
   {
-    return m_next;
+    m_prev = prev;
   }
-
-  void insertBefore(IntrusiveList *pos) noexcept;
-  void insertAfter(IntrusiveList *pos) noexcept;
 };
 
 } // namespace ljit
