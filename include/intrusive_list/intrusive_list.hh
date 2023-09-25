@@ -5,6 +5,8 @@
 #include <string_view>
 #include <type_traits>
 
+#include "common/common.hh"
+
 namespace ljit
 {
 struct IListError : public std::runtime_error
@@ -31,10 +33,9 @@ private:
 public:
   IntrusiveListNode() = default;
 
-  IntrusiveListNode(const IntrusiveListNode &) = delete;
-  IntrusiveListNode(IntrusiveListNode &&) = default;
-  IntrusiveListNode &operator=(const IntrusiveListNode &) = delete;
-  IntrusiveListNode &operator=(IntrusiveListNode &&) = default;
+  LJIT_NO_COPY_SEMANTICS(IntrusiveListNode);
+  LJIT_NO_MOVE_SEMANTICS(IntrusiveListNode);
+
   virtual ~IntrusiveListNode() = default;
 
   template <class T = IntrusiveListNode>
