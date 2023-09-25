@@ -1,0 +1,5 @@
+#ifndef LJIT_MAKE_OPCODE
+#error "To use this file, define LJIT_MAKE_OPCODE macro first"
+#else
+LJIT_MAKE_OPCODE(ADD)
+#endif
