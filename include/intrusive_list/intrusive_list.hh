@@ -134,7 +134,7 @@ public:
   }
 
   template <class Walker>
-  void walk(Walker &&walker) const
+  void walk(Walker &&walker)
   {
     for (const auto &elem : m_storage)
       std::forward<Walker>(walker)(elem.get());

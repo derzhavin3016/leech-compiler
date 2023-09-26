@@ -13,7 +13,8 @@ Checks: >
   -altera-unroll-loops,
   -altera-id-dependent-backward-branch,
   -cppcoreguidelines-pro-type-vararg,
-  -hicpp-vararg
+  -hicpp-vararg,
+  -fuchsia-multiple-inheritance
 
 WarningsAsErrors: ""
 HeaderFilterRegex: ""
