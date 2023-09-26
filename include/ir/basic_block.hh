@@ -81,6 +81,12 @@ public:
     m_firstInst = m_instructions.getFirst();
     m_lastInst = m_instructions.getLast();
   }
+
+  void print(std::ostream &ost) const
+  {
+    ost << '%' << m_id << ":\n";
+    m_instructions.walk([&ost](const Inst *pInst) { pInst->print(ost); });
+  }
 };
 } // namespace ljit
 

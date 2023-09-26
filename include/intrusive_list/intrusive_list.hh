@@ -1,6 +1,7 @@
 #ifndef LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 
+#include <algorithm>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -130,6 +131,13 @@ public:
   [[nodiscard]] auto size() const noexcept
   {
     return m_storage.size();
+  }
+
+  template <class Walker>
+  void walk(Walker &&walker) const
+  {
+    for (const auto &elem : m_storage)
+      std::forward<Walker>(walker)(elem.get());
   }
 };
 

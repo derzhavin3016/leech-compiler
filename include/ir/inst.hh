@@ -8,19 +8,31 @@
 
 namespace ljit
 {
+
+enum class Type
+{
+  None,
+  I8,
+  I16,
+  I32,
+  I64,
+};
+
 class Inst : public IntrusiveListNode<Inst>
 {
-  Opcodes m_opcode = Opcodes::UNKNOWN;
+  Type m_type{Type::None};
 
 protected:
-  explicit Inst(Opcodes opc) : m_opcode(opc)
+  explicit Inst(Type type) : m_type(type)
   {}
 
 public:
-  [[nodiscard]] auto getOpcode() const noexcept
+  [[nodiscard]] auto getType() const noexcept
   {
-    return m_opcode;
+    return m_type;
   }
+
+
 
   virtual void print(std::ostream &ost) const = 0;
 };
