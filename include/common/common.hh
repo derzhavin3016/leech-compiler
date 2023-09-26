@@ -33,7 +33,7 @@
 
 #define LJIT_ASSERT_MSG(cond, ...)                                             \
   [&, func_name = static_cast<const char *>(__PRETTY_FUNCTION__)] {            \
-    if LJIT_UNLIKELY (cond)                                                    \
+    if LJIT_UNLIKELY (!(cond))                                                 \
     {                                                                          \
       LJIT_PRINT_ERR("*** LJIT ASSERTION FAILED ***\n");                       \
       LJIT_PRINT_ERR("Reason:\n");                                             \
