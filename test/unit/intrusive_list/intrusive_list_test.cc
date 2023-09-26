@@ -7,7 +7,7 @@
 
 #include "intrusive_list/intrusive_list.hh"
 
-class ConcreteNode final : public ljit::IntrusiveListNode
+class ConcreteNode final : public ljit::IntrusiveListNode<ConcreteNode>
 {
   int m_elem{};
 
@@ -45,8 +45,7 @@ TEST_F(IList, fillAfter)
     storage[i]->insertAfter(*storage[i - 1]);
 
   const auto *pNode = storage.front().get();
-  for (std::size_t i = 0; i < storage.size();
-       ++i, pNode = pNode->getNext<decltype(*pNode)>())
+  for (std::size_t i = 0; i < storage.size(); ++i, pNode = pNode->getNext())
   {
     ASSERT_NE(pNode, nullptr);
     EXPECT_EQ(storage[i]->getElem(), pNode->getElem());
@@ -59,10 +58,21 @@ TEST_F(IList, fillBefore)
     storage[i]->insertBefore(*storage[i + 1]);
 
   const auto *pNode = storage.front().get();
-  for (std::size_t i = 0; i < storage.size();
-       ++i, pNode = pNode->getNext<decltype(*pNode)>())
+  for (std::size_t i = 0; i < storage.size(); ++i, pNode = pNode->getNext())
   {
     ASSERT_NE(pNode, nullptr);
     EXPECT_EQ(storage[i]->getElem(), pNode->getElem());
   }
+}
+
+TEST(IListClass, Append)
+{
+  ljit::IntrusiveList<ConcreteNode> ilist;
+
+  ilist.emplaceBack(10);
+  ilist.emplaceBack(20);
+
+  EXPECT_EQ(ilist.size(), 2);
+  EXPECT_EQ(ilist.getFirst()->getElem(), 10);
+  EXPECT_EQ(ilist.getLast()->getElem(), 20);
 }

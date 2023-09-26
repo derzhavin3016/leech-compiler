@@ -8,7 +8,7 @@
 
 namespace ljit
 {
-class Inst : public IntrusiveListNode
+class Inst : public IntrusiveListNode<Inst>
 {
   Opcodes m_opcode = Opcodes::UNKNOWN;
 

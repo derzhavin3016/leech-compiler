@@ -1,9 +1,11 @@
 #ifndef LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 
+#include <memory>
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
+#include <vector>
 
 #include "common/common.hh"
 
@@ -16,19 +18,12 @@ struct IListError : public std::runtime_error
   {}
 };
 
+template <class Derived>
 class IntrusiveListNode
 {
 private:
   IntrusiveListNode *m_prev = nullptr;
   IntrusiveListNode *m_next = nullptr;
-
-  template <class T>
-  using DeriverdPtrType = std::remove_reference_t<T> *;
-
-  template <class T>
-  using DerivedPtr = std::enable_if_t<
-    std::is_base_of_v<IntrusiveListNode, std::remove_reference_t<T>>,
-    DeriverdPtrType<T>>;
 
 public:
   IntrusiveListNode() = default;
@@ -38,19 +33,29 @@ public:
 
   virtual ~IntrusiveListNode() = default;
 
-  template <class T = IntrusiveListNode>
-  [[nodiscard]] DerivedPtr<T> getNext() const noexcept
+  [[nodiscard]] auto getNext() const noexcept
   {
-    return static_cast<DeriverdPtrType<T>>(m_next);
+    return static_cast<Derived *>(m_next);
   }
 
-  template <class T = IntrusiveListNode>
-  [[nodiscard]] DerivedPtr<T> getPrev() const noexcept
+  [[nodiscard]] auto getPrev() const noexcept
   {
-    return static_cast<DeriverdPtrType<T>>(m_prev);
+    return static_cast<Derived *>(m_prev);
   }
 
-  void insertBefore(IntrusiveListNode &pos) noexcept;
+  void insertBefore(IntrusiveListNode &pos) noexcept
+  {
+    setNext(&pos);
+
+    auto *const newPrev = pos.getPrev();
+    setPrev(newPrev);
+
+    if (newPrev != nullptr)
+      newPrev->setNext(this);
+
+    pos.setPrev(this);
+  }
+
   void insertBefore(IntrusiveListNode *pos)
   {
     if (pos == nullptr)
@@ -58,7 +63,19 @@ public:
     insertBefore(*pos);
   }
 
-  void insertAfter(IntrusiveListNode &pos) noexcept;
+  void insertAfter(IntrusiveListNode &pos) noexcept
+  {
+    setPrev(&pos);
+
+    auto *const newNext = pos.getNext();
+    setNext(newNext);
+
+    if (newNext != nullptr)
+      newNext->setPrev(this);
+
+    pos.setNext(this);
+  }
+
   void insertAfter(IntrusiveListNode *pos)
   {
     if (pos == nullptr)
@@ -75,6 +92,44 @@ private:
   void setPrev(IntrusiveListNode *prev) noexcept
   {
     m_prev = prev;
+  }
+};
+
+template <class BaseNode>
+class IntrusiveList final
+{
+  static_assert(std::is_base_of_v<IntrusiveListNode<BaseNode>, BaseNode>);
+  std::vector<std::unique_ptr<BaseNode>> m_storage{};
+
+public:
+  [[nodiscard]] auto *getFirst() const noexcept
+  {
+    LJIT_ASSERT(!m_storage.empty());
+    return m_storage.front().get();
+  }
+
+  [[nodiscard]] auto *getLast() const noexcept
+  {
+    LJIT_ASSERT(!m_storage.empty());
+    return m_storage.back().get();
+  }
+
+  template <class T = BaseNode, class... Args>
+  void emplaceBack(Args &&...args)
+  {
+    static_assert(std::is_base_of_v<BaseNode, T>);
+
+    BaseNode *const newNode =
+      m_storage.emplace_back(std::make_unique<T>(std::forward<Args>(args)...))
+        .get();
+
+    if (!m_storage.empty())
+      newNode->insertAfter(m_storage.back().get());
+  }
+
+  [[nodiscard]] auto size() const noexcept
+  {
+    return m_storage.size();
   }
 };
 
