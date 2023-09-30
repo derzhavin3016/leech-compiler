@@ -11,8 +11,8 @@
   CLS_NAME &operator=(const CLS_NAME &) = EQ
 
 #define LJIT_MOVE_SEMANTICS(CLS_NAME, EQ)                                      \
-  CLS_NAME(CLS_NAME &&) = EQ;                                                  \
-  CLS_NAME &operator=(CLS_NAME &&) = EQ
+  CLS_NAME(CLS_NAME &&) noexcept = EQ;                                         \
+  CLS_NAME &operator=(CLS_NAME &&) noexcept = EQ
 
 #define LJIT_NO_COPY_SEMANTICS(CLS_NAME) LJIT_COPY_SEMANTICS(CLS_NAME, delete)
 

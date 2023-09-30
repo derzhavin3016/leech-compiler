@@ -23,8 +23,8 @@ template <class Derived>
 class IntrusiveListNode
 {
 private:
+  std::unique_ptr<IntrusiveListNode> m_next = nullptr;
   IntrusiveListNode *m_prev = nullptr;
-  IntrusiveListNode *m_next = nullptr;
 
 public:
   IntrusiveListNode() = default;
@@ -36,12 +36,17 @@ public:
 
   [[nodiscard]] auto getNext() const noexcept
   {
-    return static_cast<Derived *>(m_next);
+    return static_cast<Derived *>(m_next.get());
   }
 
   [[nodiscard]] auto getPrev() const noexcept
   {
     return static_cast<Derived *>(m_prev);
+  }
+
+  void resetNext() noexcept
+  {
+    m_next.reset();
   }
 
   void insertBefore(IntrusiveListNode &pos) noexcept
@@ -87,7 +92,7 @@ public:
 private:
   void setNext(IntrusiveListNode *next) noexcept
   {
-    m_next = next;
+    m_next.reset(next);
   }
 
   void setPrev(IntrusiveListNode *prev) noexcept
@@ -100,19 +105,33 @@ template <class BaseNode>
 class IntrusiveList final
 {
   static_assert(std::is_base_of_v<IntrusiveListNode<BaseNode>, BaseNode>);
-  std::vector<std::unique_ptr<BaseNode>> m_storage{};
+
+  std::unique_ptr<BaseNode> m_head;
+  BaseNode *m_tail{};
+  std::size_t m_size{};
 
 public:
+  IntrusiveList() = default;
+
+  LJIT_NO_COPY_SEMANTICS(IntrusiveList);
+  LJIT_DEFAULT_MOVE_SEMANTICS(IntrusiveList);
+
+  ~IntrusiveList()
+  {
+    for (; m_tail != nullptr; m_tail = m_tail->getPrev())
+      m_tail->resetNext();
+  }
+
   [[nodiscard]] auto *getFirst() const noexcept
   {
-    LJIT_ASSERT(!m_storage.empty());
-    return m_storage.front().get();
+    LJIT_ASSERT(!empty());
+    return m_head.get();
   }
 
   [[nodiscard]] auto *getLast() const noexcept
   {
-    LJIT_ASSERT(!m_storage.empty());
-    return m_storage.back().get();
+    LJIT_ASSERT(!empty());
+    return m_tail;
   }
 
   template <class T = BaseNode, class... Args>
@@ -120,24 +139,37 @@ public:
   {
     static_assert(std::is_base_of_v<BaseNode, T>);
 
-    BaseNode *const newNode =
-      m_storage.emplace_back(std::make_unique<T>(std::forward<Args>(args)...))
-        .get();
+    auto newTail = std::make_unique<T>(std::forward<Args>(args)...);
 
-    if (!m_storage.empty())
-      newNode->insertAfter(m_storage.back().get());
+    if (empty())
+    {
+      m_tail = newTail.get();
+      m_head.swap(newTail);
+    }
+    else
+    {
+      newTail.release()->insertAfter(*m_tail);
+      m_tail = m_tail->getNext();
+    }
+
+    ++m_size;
+  }
+
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return size() == 0;
   }
 
   [[nodiscard]] auto size() const noexcept
   {
-    return m_storage.size();
+    return m_size;
   }
 
   template <class Walker>
   void walk(Walker &&walker)
   {
-    for (const auto &elem : m_storage)
-      std::forward<Walker>(walker)(elem.get());
+    for (auto cur = m_head.get(); cur != nullptr; cur = cur->getNext())
+      std::forward<Walker>(walker)(cur);
   }
 };
 
