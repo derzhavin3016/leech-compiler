@@ -2,6 +2,8 @@
 #define LEECH_JIT_INCLUDE_INTRUSIVE_LIST_INTRUSIVE_LIST_HH_INCLUDED
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <memory>
 #include <stdexcept>
 #include <string_view>
@@ -111,6 +113,68 @@ class IntrusiveList final
   std::size_t m_size{};
 
 public:
+  class iterator final
+  {
+  public:
+    using iterator_category = std::bidirectional_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = BaseNode;
+    using pointer = value_type *;
+    using reference = value_type &;
+
+  private:
+    pointer m_ptr{nullptr};
+
+  public:
+    iterator() = default;
+    explicit iterator(pointer ptr) : m_ptr{ptr}
+    {}
+
+    [[nodiscard]] reference operator*() const noexcept
+    {
+      return *m_ptr;
+    }
+
+    [[nodiscard]] pointer operator->() const noexcept
+    {
+      return m_ptr;
+    }
+
+    reference operator++() noexcept
+    {
+      m_ptr = m_ptr->getNext();
+      return *m_ptr;
+    }
+
+    reference operator--() noexcept
+    {
+      m_ptr = m_ptr->getPrev();
+      return *m_ptr;
+    }
+
+    value_type operator++(int) noexcept
+    {
+      auto tmp = *this;
+      operator++();
+      return tmp;
+    }
+    value_type operator--(int) noexcept
+    {
+      auto tmp = *this;
+      operator--();
+      return tmp;
+    }
+
+    [[nodiscard]] bool operator==(const iterator &rhs) const noexcept
+    {
+      return m_ptr == rhs.m_ptr;
+    }
+    [[nodiscard]] bool operator!=(const iterator &rhs) const noexcept
+    {
+      return !(*this == rhs);
+    }
+  };
+
   IntrusiveList() = default;
 
   LJIT_NO_COPY_SEMANTICS(IntrusiveList);
@@ -165,11 +229,14 @@ public:
     return m_size;
   }
 
-  template <class Walker>
-  void walk(Walker &&walker)
+  [[nodiscard]] auto begin() const noexcept
   {
-    for (auto cur = m_head.get(); cur != nullptr; cur = cur->getNext())
-      std::forward<Walker>(walker)(cur);
+    return iterator{m_head};
+  }
+
+  [[nodiscard]] auto end() const noexcept
+  {
+    return iterator{};
   }
 };
 
