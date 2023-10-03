@@ -1,0 +1,2 @@
+add_executable(basic_block_test basic_block_test.cc)
+upd_tar_list(basic_block_test TESTLIST)

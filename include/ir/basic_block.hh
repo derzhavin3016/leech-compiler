@@ -65,7 +65,7 @@ public:
   {
     ost << '%' << m_id << ":\n";
     std::for_each(m_instructions.begin(), m_instructions.end(),
-                  [&ost](auto pInst) { pInst->print(ost); });
+                  [&ost](const auto &inst) { inst.print(ost); });
   }
 };
 } // namespace ljit

@@ -106,7 +106,7 @@ public:
     return m_false;
   }
 
-  void print(std::ostream &) const override
+  void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
 
@@ -123,7 +123,7 @@ public:
     return m_target;
   }
 
-  void print(std::ostream &) const override
+  void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
 
@@ -152,7 +152,20 @@ public:
     LJIT_ASSERT(lhs->getType() == rhs->getType());
   }
 
-  void print(std::ostream &ost) const override
+  [[nodiscard]] auto getOper() const noexcept
+  {
+    return m_oper;
+  }
+  [[nodiscard]] auto getLeft() const noexcept
+  {
+    return m_lhs;
+  }
+  [[nodiscard]] auto getRight() const noexcept
+  {
+    return m_rhs;
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
 
@@ -164,7 +177,12 @@ public:
   explicit Ret(Value *toRet) : m_toRet(toRet)
   {}
 
-  void print(std::ostream &ost) const override
+  [[nodiscard]] auto getVal() const noexcept
+  {
+    return m_toRet;
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
 
@@ -176,7 +194,18 @@ class Cast final : public Inst
 public:
   Cast(Type destT, Value *srcV) : m_destT(destT), m_srcV(srcV)
   {}
-  void print(std::ostream &ost) const override
+
+  [[nodiscard]] auto getDstTy() const noexcept
+  {
+    return m_destT;
+  }
+
+  [[nodiscard]] auto getSrc() const noexcept
+  {
+    return m_srcV;
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
 

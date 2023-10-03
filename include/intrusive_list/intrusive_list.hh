@@ -231,7 +231,7 @@ public:
 
   [[nodiscard]] auto begin() const noexcept
   {
-    return iterator{m_head};
+    return iterator{m_head.get()};
   }
 
   [[nodiscard]] auto end() const noexcept
