@@ -208,7 +208,7 @@ public:
     if (empty())
     {
       m_tail = newTail.get();
-      m_head.swap(newTail);
+      m_head.reset(newTail.release());
     }
     else
     {

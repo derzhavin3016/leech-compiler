@@ -104,13 +104,17 @@ class ConstVal final
     explicit ConstVal(ValueT val)                                              \
       : Inst(Type::I##numBits, InstType::kConst), m_value(val)                 \
     {}                                                                         \
-                                                                               \
+    [[nodiscard]] auto getVal() const noexcept                                 \
+    {                                                                          \
+      return m_value;                                                          \
+    }                                                                          \
     void print(std::ostream &ost) const override                               \
     {                                                                          \
       ost << "const." << magic_enum::enum_name(getType()) << ' ' << m_value    \
           << '\n';                                                             \
     }                                                                          \
-  }
+  };                                                                           \
+  using ConstVal_I##numBits = ConstVal<std::int##numBits##_t>;
 
 LJIT_MAKE_CONST_CLASS(8);
 LJIT_MAKE_CONST_CLASS(16);
@@ -191,12 +195,15 @@ public:
 
 class BinOp final : public Inst
 {
+public:
   enum class Oper
   {
     kAdd,
     kMul,
     kLE,
   };
+
+private:
   Oper m_oper{};
   Value *m_lhs{nullptr};
   Value *m_rhs{nullptr};

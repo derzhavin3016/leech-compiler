@@ -22,14 +22,14 @@ class Function final
   std::list<Param> m_params;
 
 public:
-  void appendBB()
+  auto appendBB()
   {
-    m_bbs.emplaceBack();
+    return m_bbs.emplaceBack();
   }
 
-  void appendParam(Type type)
+  auto appendParam(Type type)
   {
-    m_params.emplace_back(type);
+    return &m_params.emplace_back(type);
   }
 };
 
