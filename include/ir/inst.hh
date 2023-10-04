@@ -1,14 +1,25 @@
 #ifndef LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 
+#include <magic_enum.hpp>
 #include <ostream>
 #include <type_traits>
 
-#include "common/opcodes.hh"
 #include "intrusive_list/intrusive_list.hh"
 
 namespace ljit
 {
+
+enum class InstType : std::uint8_t
+{
+  kUnknown,
+  kIf,
+  kConst,
+  kJump,
+  kBinOp,
+  kRet,
+  kCast,
+};
 
 enum class Type
 {
@@ -35,12 +46,20 @@ public:
 
 class Inst : public Value, public IntrusiveListNode<Inst>
 {
+  InstType m_iType{};
+
 protected:
-  Inst() = default;
-  explicit Inst(Type type) noexcept : Value(type)
+  explicit Inst(InstType iType) noexcept : m_iType(iType)
+  {}
+  explicit Inst(Type type, InstType iType) noexcept
+    : Value(type), m_iType(iType)
   {}
 
 public:
+  [[nodiscard]] auto getInstType() const noexcept
+  {
+    return m_iType;
+  }
   virtual void print(std::ostream &ost) const = 0;
 };
 
@@ -49,7 +68,7 @@ struct AlwaysFalse : std::false_type
 {};
 
 template <class T>
-class ConstVal final : public Inst
+class ConstVal final
 {
   static_assert(AlwaysFalse<T>::value, "Unsupported const type");
 };
@@ -63,7 +82,8 @@ class ConstVal final : public Inst
     ValueT m_value{};                                                          \
                                                                                \
   public:                                                                      \
-    explicit ConstVal(ValueT val) : Inst(Type::I##numBits), m_value(val)       \
+    explicit ConstVal(ValueT val)                                              \
+      : Inst(Type::I##numBits, InstType::kConst), m_value(val)                 \
     {}                                                                         \
                                                                                \
     void print(std::ostream &ost) const override                               \
@@ -90,7 +110,7 @@ class IfInstr final : public Inst
 
 public:
   IfInstr(Value *cond, BasicBlock *trueBB, BasicBlock *falseBB)
-    : m_cond(cond), m_true(trueBB), m_false(falseBB)
+    : Inst(InstType::kIf), m_cond(cond), m_true(trueBB), m_false(falseBB)
   {}
 
   [[nodiscard]] auto *getCond() const noexcept
@@ -115,7 +135,8 @@ class JumpInstr final : public Inst
   BasicBlock *m_target{nullptr};
 
 public:
-  explicit JumpInstr(BasicBlock *target) : m_target(target)
+  explicit JumpInstr(BasicBlock *target)
+    : Inst(InstType::kJump), m_target(target)
   {}
 
   [[nodiscard]] auto getTarget() const noexcept
@@ -125,12 +146,6 @@ public:
 
   void print([[maybe_unused]] std::ostream &ost) const override
   {}
-};
-
-class BinInst : public Inst
-{
-
-public:
 };
 
 class BinOp final : public Inst
@@ -147,7 +162,7 @@ class BinOp final : public Inst
 
 public:
   BinOp(Oper oper, Value *lhs, Value *rhs)
-    : m_oper(oper), m_lhs(lhs), m_rhs(rhs)
+    : Inst(InstType::kBinOp), m_oper(oper), m_lhs(lhs), m_rhs(rhs)
   {
     LJIT_ASSERT(lhs->getType() == rhs->getType());
   }
@@ -174,7 +189,7 @@ class Ret final : public Inst
   Value *m_toRet{nullptr};
 
 public:
-  explicit Ret(Value *toRet) : m_toRet(toRet)
+  explicit Ret(Value *toRet) : Inst(InstType::kRet), m_toRet(toRet)
   {}
 
   [[nodiscard]] auto getVal() const noexcept
@@ -192,7 +207,8 @@ class Cast final : public Inst
   Value *m_srcV{};
 
 public:
-  Cast(Type destT, Value *srcV) : m_destT(destT), m_srcV(srcV)
+  Cast(Type destT, Value *srcV)
+    : Inst(InstType::kCast), m_destT(destT), m_srcV(srcV)
   {}
 
   [[nodiscard]] auto getDstTy() const noexcept
