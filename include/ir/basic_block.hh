@@ -18,18 +18,16 @@
 namespace ljit
 {
 
-class BasicBlock final
+class BasicBlock final : public IntrusiveListNode<BasicBlock>
 {
   IntrusiveList<Inst> m_instructions{};
   std::vector<BasicBlock *> m_pred{};
   std::size_t m_id{};
 
 public:
+  BasicBlock() = default;
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
-  LJIT_NO_COPY_SEMANTICS(BasicBlock);
-  LJIT_NO_MOVE_SEMANTICS(BasicBlock);
-  ~BasicBlock() = default;
 
   [[nodiscard]] auto size() const noexcept
   {
@@ -56,9 +54,25 @@ public:
   }
 
   template <class T, class... Args>
-  void emplaceInst(Args &&...args)
+  auto emplaceInstBack(Args &&...args)
   {
-    m_instructions.emplaceBack<T>(std::forward<Args>(args)...);
+    auto *const inserted = static_cast<T *>(
+      m_instructions.emplaceBack<T>(std::forward<Args>(args)...));
+    inserted->setBB(this);
+
+    auto &&setThisAsPred = [this](BasicBlock *next) {
+      next->addPredecessor(this);
+    };
+
+    if constexpr (std::is_same_v<T, IfInstr>)
+    {
+      setThisAsPred(inserted->getTrueBB());
+      setThisAsPred(inserted->getFalseBB());
+    }
+    else if constexpr (std::is_same_v<T, JumpInstr>)
+      setThisAsPred(inserted->getTarget());
+
+    return inserted;
   }
 
   void print(std::ostream &ost) const

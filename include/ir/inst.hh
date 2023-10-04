@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 
 #include <magic_enum.hpp>
+#include <memory>
 #include <ostream>
 #include <type_traits>
 
@@ -19,6 +20,7 @@ enum class InstType : std::uint8_t
   kBinOp,
   kRet,
   kCast,
+  kPhi,
 };
 
 enum class Type
@@ -44,9 +46,12 @@ public:
   }
 };
 
+class BasicBlock;
+
 class Inst : public Value, public IntrusiveListNode<Inst>
 {
   InstType m_iType{};
+  BasicBlock *m_bb{nullptr};
 
 protected:
   explicit Inst(InstType iType) noexcept : m_iType(iType)
@@ -56,12 +61,26 @@ protected:
   {}
 
 public:
+  [[nodiscard]] auto getBB() const noexcept
+  {
+    return m_bb;
+  }
+  void setBB(BasicBlock *bb) noexcept
+  {
+    m_bb = bb;
+  }
   [[nodiscard]] auto getInstType() const noexcept
   {
     return m_iType;
   }
   virtual void print(std::ostream &ost) const = 0;
 };
+
+template <class T, class... Args>
+[[nodiscard]] std::unique_ptr<Inst> makeInst(Args &&...args)
+{
+  return std::make_unique<T>(std::forward<Args>(args)...);
+}
 
 template <class... Args>
 struct AlwaysFalse : std::false_type
@@ -142,6 +161,28 @@ public:
   [[nodiscard]] auto getTarget() const noexcept
   {
     return m_target;
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
+  {}
+};
+
+class Phi final : public Inst
+{
+  struct PhiEntry final
+  {
+    Value *m_val{nullptr};
+    BasicBlock *bb{nullptr};
+  };
+  std::vector<PhiEntry> m_vars{};
+
+public:
+  explicit Phi(Type type) : Inst(type, InstType::kPhi)
+  {}
+
+  void addNode(Value *val, BasicBlock *bb)
+  {
+    m_vars.push_back(PhiEntry{val, bb});
   }
 
   void print([[maybe_unused]] std::ostream &ost) const override

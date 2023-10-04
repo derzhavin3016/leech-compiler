@@ -1,18 +1,36 @@
 #ifndef LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 
-#include <vector>
+#include <list>
 
 #include "basic_block.hh"
 #include "inst.hh"
+#include "intrusive_list/intrusive_list.hh"
 
 namespace ljit
 {
 
+struct Param final : public Value
+{
+  explicit Param(Type type) : Value(type)
+  {}
+};
+
 class Function final
 {
-  std::vector<BasicBlock> m_bbs;
-  // std::vector<Param>
+  IntrusiveList<BasicBlock> m_bbs;
+  std::list<Param> m_params;
+
+public:
+  void appendBB()
+  {
+    m_bbs.emplaceBack();
+  }
+
+  void appendParam(Type type)
+  {
+    m_params.emplace_back(type);
+  }
 };
 
 } // namespace ljit

@@ -199,7 +199,7 @@ public:
   }
 
   template <class T = BaseNode, class... Args>
-  void emplaceBack(Args &&...args)
+  auto emplaceBack(Args &&...args)
   {
     static_assert(std::is_base_of_v<BaseNode, T>);
 
@@ -217,6 +217,7 @@ public:
     }
 
     ++m_size;
+    return m_tail;
   }
 
   [[nodiscard]] bool empty() const noexcept
