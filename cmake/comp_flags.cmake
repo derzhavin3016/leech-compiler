@@ -28,7 +28,6 @@ set(COMMON_WARNINGS
     -Wno-gnu-zero-variadic-macro-arguments
     -Weffc++
     -Wc++17-compat
-    -Wc++-compat
     -Wcast-align
     -Wcast-qual
     -Wchar-subscripts
@@ -40,7 +39,7 @@ set(COMMON_WARNINGS
     -Wformat-security
     -Wformat=2
     -Winline
-    -Wlarger-than=8192
+    # -Wlarger-than=8192
     -Wmissing-declarations
     -Wnon-virtual-dtor
     -Woverloaded-virtual
