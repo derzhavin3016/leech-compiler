@@ -5,6 +5,7 @@
 #include <ostream>
 #include <type_traits>
 
+#include "common/common.hh"
 #include "intrusive_list/intrusive_list.hh"
 
 namespace ljit
@@ -60,6 +61,10 @@ protected:
   {}
 
 public:
+  LJIT_NO_COPY_SEMANTICS(Inst);
+  LJIT_NO_MOVE_SEMANTICS(Inst);
+  ~Inst() override = default;
+
   [[nodiscard]] auto getBB() const noexcept
   {
     return m_bb;
@@ -112,7 +117,7 @@ class ConstVal final
       ost << "const." << ' ' << m_value << '\n';                               \
     }                                                                          \
   };                                                                           \
-  using ConstVal_I##numBits = ConstVal<std::int##numBits##_t>;
+  using ConstVal_I##numBits = ConstVal<std::int##numBits##_t>
 
 LJIT_MAKE_CONST_CLASS(8);
 LJIT_MAKE_CONST_CLASS(16);
