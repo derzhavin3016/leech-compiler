@@ -109,7 +109,6 @@ TEST(Builder, Fibonacci)
   // build bb3
   auto *ret = bb2->emplaceInstBack<ljit::Ret>(v5);
   {
-    ASSERT_EQ(ret->getType(), ljit::Type::I64);
     ASSERT_EQ(ret->getVal(), v5);
   }
 

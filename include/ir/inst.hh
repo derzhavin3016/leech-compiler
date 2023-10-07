@@ -209,7 +209,10 @@ private:
 
 public:
   BinOp(Oper oper, Value *lhs, Value *rhs)
-    : Inst(InstType::kBinOp), m_oper(oper), m_lhs(lhs), m_rhs(rhs)
+    : Inst(rhs->getType(), InstType::kBinOp),
+      m_oper(oper),
+      m_lhs(lhs),
+      m_rhs(rhs)
   {
     LJIT_ASSERT(lhs->getType() == rhs->getType());
   }
@@ -250,18 +253,11 @@ public:
 
 class Cast final : public Inst
 {
-  Type m_destT{};
   Value *m_srcV{};
 
 public:
-  Cast(Type destT, Value *srcV)
-    : Inst(InstType::kCast), m_destT(destT), m_srcV(srcV)
+  Cast(Type destT, Value *srcV) : Inst(destT, InstType::kCast), m_srcV(srcV)
   {}
-
-  [[nodiscard]] auto getDstTy() const noexcept
-  {
-    return m_destT;
-  }
 
   [[nodiscard]] auto getSrc() const noexcept
   {
