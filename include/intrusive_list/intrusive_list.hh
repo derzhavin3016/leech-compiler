@@ -140,25 +140,25 @@ public:
       return m_ptr;
     }
 
-    reference operator++() noexcept
+    iterator &operator++() noexcept
     {
       m_ptr = m_ptr->getNext();
-      return *m_ptr;
+      return *this;
     }
 
-    reference operator--() noexcept
+    iterator &operator--() noexcept
     {
       m_ptr = m_ptr->getPrev();
-      return *m_ptr;
+      return *this;
     }
 
-    value_type operator++(int) noexcept
+    iterator operator++(int) noexcept
     {
       auto tmp = *this;
       operator++();
       return tmp;
     }
-    value_type operator--(int) noexcept
+    iterator operator--(int) noexcept
     {
       auto tmp = *this;
       operator--();
