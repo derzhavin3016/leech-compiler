@@ -40,14 +40,14 @@
       LJIT_PRINT_ERR(__VA_ARGS__);                                             \
       LJIT_PRINT_ERR("\n");                                                    \
       LJIT_PRINT_ERR("Condition '%s' has evaluated to false\n", #cond);        \
-      LJIT_PRINT_ERR("In file %s on line %u in function %s\n", __FILE__,       \
+      LJIT_PRINT_ERR("In file %s on line %i in function %s\n", __FILE__,       \
                      __LINE__, func_name);                                     \
       LJIT_PRINT_ERR("**************************\n");                          \
       LJIT_ABORT();                                                            \
     }                                                                          \
   }()
 
-#define LJIT_ASSERT(cond) LJIT_ASSERT_MSG(cond, "")
+#define LJIT_ASSERT(cond) LJIT_ASSERT_MSG(cond, "%s", "")
 
 namespace ljit
 {

@@ -61,10 +61,6 @@ protected:
   {}
 
 public:
-  LJIT_NO_COPY_SEMANTICS(Inst);
-  LJIT_NO_MOVE_SEMANTICS(Inst);
-  ~Inst() override = default;
-
   [[nodiscard]] auto getBB() const noexcept
   {
     return m_bb;

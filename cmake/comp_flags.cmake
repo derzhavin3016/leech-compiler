@@ -26,7 +26,7 @@ set(COMMON_WARNINGS
     -Wextra
     -Wpedantic
     -Wno-gnu-zero-variadic-macro-arguments
-    -Weffc++
+    # -Weffc++
     -Wc++17-compat
     -Wcast-align
     -Wcast-qual
