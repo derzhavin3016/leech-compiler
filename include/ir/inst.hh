@@ -110,8 +110,7 @@ class ConstVal final
     }                                                                          \
     void print(std::ostream &ost) const override                               \
     {                                                                          \
-      ost << "const." << magic_enum::enum_name(getType()) << ' ' << m_value    \
-          << '\n';                                                             \
+      ost << "const." << ' ' << m_value << '\n';                               \
     }                                                                          \
   };                                                                           \
   using ConstVal_I##numBits = ConstVal<std::int##numBits##_t>;
