@@ -1,7 +1,6 @@
 #ifndef LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 
-#include <magic_enum.hpp>
 #include <memory>
 #include <ostream>
 #include <type_traits>

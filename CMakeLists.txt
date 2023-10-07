@@ -64,8 +64,6 @@ foreach(TARGET ${TARGETS})
   target_compile_features(${TARGET} INTERFACE cxx_std_17)
   apply_compiler_flags(${TARGET} INTERFACE)
 
-  target_link_libraries(${TARGET} INTERFACE magic_enum::magic_enum)
-
   if(ENABLE_WERROR)
     target_compile_options(${TARGET} INTERFACE -Werror)
   endif()
