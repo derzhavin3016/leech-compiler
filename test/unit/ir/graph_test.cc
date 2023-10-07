@@ -40,16 +40,16 @@
 TEST(Builder, Fibonacci)
 {
   auto func = ljit::Function{};
-  auto v0 = func.appendParam(ljit::Type::I32);
+  auto *v0 = func.appendParam(ljit::Type::I32);
 
-  auto bb0 = func.appendBB();
-  auto bb1 = func.appendBB();
-  auto bb2 = func.appendBB();
-  auto bb3 = func.appendBB();
+  auto *bb0 = func.appendBB();
+  auto *bb1 = func.appendBB();
+  auto *bb2 = func.appendBB();
+  auto *bb3 = func.appendBB();
 
   // build bb0
-  auto v1 = bb0->emplaceInstBack<ljit::ConstVal_I64>(1);
-  auto v2 = bb0->emplaceInstBack<ljit::ConstVal_I32>(2);
+  auto *v1 = bb0->emplaceInstBack<ljit::ConstVal_I64>(1);
+  auto *v2 = bb0->emplaceInstBack<ljit::ConstVal_I32>(2);
   bb0->emplaceInstBack<ljit::JumpInstr>(bb1);
 
   {
@@ -67,11 +67,11 @@ TEST(Builder, Fibonacci)
   }
 
   // build bb1
-  auto v3 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I32);
-  auto v4 = bb1->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kLE, v3, v0);
-  auto v5 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I64);
+  auto *v3 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I32);
+  auto *v4 = bb1->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kLE, v3, v0);
+  auto *v5 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I64);
 
-  auto iIf = bb1->emplaceInstBack<ljit::IfInstr>(v4, bb2, bb3);
+  auto *iIf = bb1->emplaceInstBack<ljit::IfInstr>(v4, bb2, bb3);
 
   {
     ASSERT_EQ(v3->getNext(), v4);
@@ -88,22 +88,34 @@ TEST(Builder, Fibonacci)
     ASSERT_EQ(iIf->getTrueBB(), bb2);
     ASSERT_EQ(iIf->getFalseBB(), bb3);
   }
-
   // build bb2
-  auto v6 = bb2->emplaceInstBack<ljit::ConstVal_I32>(1);
-  auto v7 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kAdd, v3, v6);
-  auto v8 = bb2->emplaceInstBack<ljit::Cast>(ljit::Type::I64, v3);
-  auto v9 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kMul, v5, v8);
+  auto *v6 = bb2->emplaceInstBack<ljit::ConstVal_I32>(1);
+  auto *v7 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kAdd, v3, v6);
+  auto *v8 = bb2->emplaceInstBack<ljit::Cast>(ljit::Type::I64, v3);
+  auto *v9 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kMul, v5, v8);
 
-  auto jmp = bb2->emplaceInstBack<ljit::JumpInstr>(bb1);
+  auto *jmp = bb2->emplaceInstBack<ljit::JumpInstr>(bb1);
+
+  {
+    ASSERT_EQ(v6->getType(), ljit::Type::I32);
+    ASSERT_EQ(v6->getVal(), 1);
+
+    ASSERT_EQ(v7->getType(), ljit::Type::I32);
+    ASSERT_EQ(v8->getType(), ljit::Type::I64);
+    ASSERT_EQ(v9->getType(), ljit::Type::I64);
+    ASSERT_EQ(jmp->getTarget(), bb1);
+  }
 
   // build bb3
-  auto ret = bb2->emplaceInstBack<ljit::Ret>(v5);
+  auto *ret = bb2->emplaceInstBack<ljit::Ret>(v5);
+  {
+    ASSERT_EQ(ret->getType(), ljit::Type::I64);
+    ASSERT_EQ(ret->getVal(), v5);
+  }
 
   // fill PHI
   v3->addNode(v2, bb0);
   v3->addNode(v7, bb2);
-
 
   v5->addNode(v1, bb0);
   v5->addNode(v7, bb2);

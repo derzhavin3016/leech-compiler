@@ -57,7 +57,7 @@ public:
   auto emplaceInstBack(Args &&...args)
   {
     auto *const inserted = static_cast<T *>(
-      m_instructions.emplaceBack<T>(std::forward<Args>(args)...));
+      m_instructions.emplaceBack(makeInst<T>(std::forward<Args>(args)...)));
     inserted->setBB(this);
 
     auto &&setThisAsPred = [this](BasicBlock *next) {

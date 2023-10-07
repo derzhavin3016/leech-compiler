@@ -14,7 +14,8 @@ Checks: >
   -altera-id-dependent-backward-branch,
   -cppcoreguidelines-pro-type-vararg,
   -hicpp-vararg,
-  -fuchsia-multiple-inheritance
+  -fuchsia-multiple-inheritance,
+  -readability-identifier-length
 
 WarningsAsErrors: ""
 HeaderFilterRegex: ""

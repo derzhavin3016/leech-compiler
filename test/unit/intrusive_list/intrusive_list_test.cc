@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "intrusive_list/intrusive_list.hh"
+#include "ir/inst.hh"
 
 class ConcreteNode final : public ljit::IntrusiveListNode<ConcreteNode>
 {
@@ -63,8 +64,8 @@ TEST(IListClass, Append)
 {
   ljit::IntrusiveList<ConcreteNode> ilist;
 
-  ilist.emplaceBack(10);
-  ilist.emplaceBack(20);
+  ilist.emplaceBack(std::make_unique<ConcreteNode>(10));
+  ilist.emplaceBack(std::make_unique<ConcreteNode>(20));
 
   EXPECT_EQ(ilist.size(), 2);
   EXPECT_EQ(ilist.getFirst()->getElem(), 10);

@@ -198,13 +198,8 @@ public:
     return m_tail;
   }
 
-  template <class T = BaseNode, class... Args>
-  auto emplaceBack(Args &&...args)
+  auto emplaceBack(std::unique_ptr<BaseNode> newTail)
   {
-    static_assert(std::is_base_of_v<BaseNode, T>);
-
-    auto newTail = std::make_unique<T>(std::forward<Args>(args)...);
-
     if (empty())
     {
       m_tail = newTail.get();

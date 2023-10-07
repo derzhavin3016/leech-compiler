@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 
 #include <list>
+#include <memory>
 
 #include "basic_block.hh"
 #include "inst.hh"
@@ -24,7 +25,7 @@ class Function final
 public:
   auto appendBB()
   {
-    return m_bbs.emplaceBack();
+    return m_bbs.emplaceBack(std::make_unique<BasicBlock>());
   }
 
   auto appendParam(Type type)
