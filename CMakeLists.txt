@@ -60,12 +60,12 @@ set(TARGETS)
 list(APPEND TARGETS ${LIBLIST} ${TOOLLIST})
 
 foreach(TARGET ${TARGETS})
-  target_include_directories(${TARGET} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-  target_compile_features(${TARGET} PRIVATE cxx_std_17)
-  apply_compiler_flags(${TARGET} PUBLIC)
+  target_include_directories(${TARGET} INTERFACE ${CMAKE_SOURCE_DIR}/include)
+  target_compile_features(${TARGET} INTERFACE cxx_std_17)
+  apply_compiler_flags(${TARGET} INTERFACE)
 
   if(ENABLE_WERROR)
-    target_compile_options(${TARGET} PRIVATE -Werror)
+    target_compile_options(${TARGET} INTERFACE -Werror)
   endif()
 endforeach()
 

@@ -1,0 +1,2 @@
+add_executable(intrusive_list_test intrusive_list_test.cc)
+upd_tar_list(intrusive_list_test TESTLIST)
