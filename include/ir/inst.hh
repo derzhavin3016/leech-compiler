@@ -26,6 +26,7 @@ enum class InstType : std::uint8_t
 enum class Type
 {
   None,
+  I1,
   I8,
   I16,
   I32,
@@ -92,17 +93,18 @@ class ConstVal final
   static_assert(AlwaysFalse<T>::value, "Unsupported const type");
 };
 
-#define LJIT_MAKE_CONST_CLASS(numBits)                                         \
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LJIT_MAKE_CONST_CLASS(valTy, ljitTy)                                   \
   template <>                                                                  \
-  class ConstVal<std::int##numBits##_t> final : public Inst                    \
+  class ConstVal<valTy> final : public Inst                                    \
   {                                                                            \
-    using ValueT = std::int##numBits##_t;                                      \
+    using ValueT = valTy;                                                      \
                                                                                \
     ValueT m_value{};                                                          \
                                                                                \
   public:                                                                      \
     explicit ConstVal(ValueT val)                                              \
-      : Inst(Type::I##numBits, InstType::kConst), m_value(val)                 \
+      : Inst(Type::ljitTy, InstType::kConst), m_value(val)                     \
     {}                                                                         \
     [[nodiscard]] auto getVal() const noexcept                                 \
     {                                                                          \
@@ -113,14 +115,21 @@ class ConstVal final
       ost << "const." << ' ' << m_value << '\n';                               \
     }                                                                          \
   };                                                                           \
-  using ConstVal_I##numBits = ConstVal<std::int##numBits##_t>
+  using ConstVal_##ljitTy = ConstVal<valTy>
 
-LJIT_MAKE_CONST_CLASS(8);
-LJIT_MAKE_CONST_CLASS(16);
-LJIT_MAKE_CONST_CLASS(32);
-LJIT_MAKE_CONST_CLASS(64);
+LJIT_MAKE_CONST_CLASS(bool, I1);
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LJIT_MAKE_INT_CONST_CLASS(numBits)                                     \
+  LJIT_MAKE_CONST_CLASS(std::int##numBits##_t, I##numBits)
+
+LJIT_MAKE_INT_CONST_CLASS(8);
+LJIT_MAKE_INT_CONST_CLASS(16);
+LJIT_MAKE_INT_CONST_CLASS(32);
+LJIT_MAKE_INT_CONST_CLASS(64);
 
 #undef LJIT_MAKE_CONST_CLASS
+#undef LJIT_MAKE_INT_CONST_CLASS
 
 class BasicBlock;
 
