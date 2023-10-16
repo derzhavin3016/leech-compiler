@@ -111,7 +111,6 @@ protected:
 
   static void moveBefore(IListNode *point, IListNode *first,
                          IListNode *last) noexcept
-
   {
     LJIT_ASSERT(point != nullptr);
     LJIT_ASSERT(first != nullptr);
