@@ -1,14 +1,32 @@
 #include <algorithm>
 #include <cstddef>
+#include <gtest/gtest-death-test.h>
+#include <gtest/gtest-test-part.h>
 #include <memory>
 #include <tuple>
 
 #include <gtest/gtest.h>
 
+#include "common/common.hh"
 #include "intrusive_list/intrusive_list.hh"
-#include "ir/inst.hh"
 
-class ConcreteNode final : public ljit::IntrusiveListNode<ConcreteNode>
+TEST(IList, setGet)
+{
+  // Assign
+  ljit::IListNode node;
+  ljit::IListNode node1;
+  ljit::IListNode node2;
+
+  // Act
+  node1.setPrev(&node);
+  node1.setNext(&node2);
+
+  // Assert
+  EXPECT_EQ(node1.getNext(), &node2);
+  EXPECT_EQ(node1.getPrev(), &node);
+}
+
+class ConcreteNode final : public ljit::IListNode
 {
   int m_elem{};
 
@@ -23,51 +41,233 @@ public:
   }
 };
 
-TEST(INode, insertAfter)
+struct IListConcrete final : public ljit::IListBase
 {
-  auto node1 = std::make_unique<ConcreteNode>(10);
-  auto node2 = std::make_unique<ConcreteNode>(20);
+  using ljit::IListBase::insertAfter;
+  using ljit::IListBase::insertBefore;
+  using ljit::IListBase::moveBefore;
+  using ljit::IListBase::remove;
+};
 
-  node2->insertAfter(node1.get());
+template <std::size_t Size>
+class IListBaseTest : public ::testing::Test
+{
+protected:
+  IListBaseTest() : nodes(Size), node1(nodes.front()), node2(nodes[1])
+  {
+    std::generate(nodes.begin(), nodes.end(),
+                  [i = std::size_t{1}, this]() mutable {
+                    return std::make_unique<ConcreteNode>(
+                      i++ * static_cast<std::size_t>(val1));
+                  });
+  }
+  void linkAll()
+  {
+    link(0, nodes.size());
+  }
+  void link(std::size_t start, std::size_t end)
+  {
+    LJIT_ASSERT(start < nodes.size());
+    LJIT_ASSERT(end <= nodes.size() && end >= 1);
+    for (; start < end - 1; ++start)
+    {
+      IListConcrete::insertAfter(nodes[start].get(), nodes[start + 1].get());
+    }
+  }
+  int val1 = 10;
+  int val2 = 2 * val1;
+  std::vector<std::unique_ptr<ConcreteNode>> nodes{};
 
-  EXPECT_EQ(node1->getElem(), 10);
+  std::unique_ptr<ConcreteNode> &node1;
+  std::unique_ptr<ConcreteNode> &node2;
+};
+
+using IListBasePairTest = IListBaseTest<2>;
+
+TEST_F(IListBasePairTest, insertAfter)
+{
+  // Act
+  IListConcrete::insertAfter(node1.get(), node2.get());
+
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
+
+  EXPECT_EQ(node1->getNext(), node2.get());
   EXPECT_EQ(node1->getPrev(), nullptr);
 
-  ASSERT_EQ(node1->getNext(), node2.get());
-
-  EXPECT_EQ(node2->getElem(), 20);
   EXPECT_EQ(node2->getNext(), nullptr);
-  ASSERT_EQ(node2->getPrev(), node1.get());
-
-  std::ignore = node2.release();
+  EXPECT_EQ(node2->getPrev(), node1.get());
 }
 
-TEST(INode, insertBefore)
+TEST_F(IListBasePairTest, insertBefore)
 {
-  auto node1 = std::make_unique<ConcreteNode>(10);
-  auto node2 = std::make_unique<ConcreteNode>(20);
+  // Act
+  IListConcrete::insertBefore(node2.get(), node1.get());
 
-  node1->insertBefore(node2.get());
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
 
-  EXPECT_EQ(node1->getElem(), 10);
+  EXPECT_EQ(node1->getNext(), node2.get());
   EXPECT_EQ(node1->getPrev(), nullptr);
-  EXPECT_EQ(node2->getElem(), 20);
+
   EXPECT_EQ(node2->getNext(), nullptr);
-
-  ASSERT_EQ(node1->getNext(), node2.get());
-  ASSERT_EQ(node2->getPrev(), node1.get());
-
-  std::ignore = node2.release();
+  EXPECT_EQ(node2->getPrev(), node1.get());
 }
 
-TEST(IListClass, Append)
+using IListBaseTripleTest = IListBaseTest<3>;
+
+TEST_F(IListBaseTripleTest, remove)
 {
-  ljit::IntrusiveList<ConcreteNode> ilist;
+  // Assign
+  link(0, 2);
+  auto &node3 = nodes.back();
+  IListConcrete::insertAfter(node2.get(), node3.get());
 
-  ilist.emplaceBack(std::make_unique<ConcreteNode>(10));
-  ilist.emplaceBack(std::make_unique<ConcreteNode>(20));
+  // Act
+  IListConcrete::remove(node2.get());
 
-  EXPECT_EQ(ilist.size(), 2);
-  EXPECT_EQ(ilist.getFirst()->getElem(), 10);
-  EXPECT_EQ(ilist.getLast()->getElem(), 20);
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
+  ASSERT_EQ(node3->getElem(), 30);   // And here
+
+  EXPECT_EQ(node1->getNext(), node3.get());
+  EXPECT_EQ(node1->getPrev(), nullptr);
+
+  EXPECT_EQ(node2->getNext(), nullptr);
+  EXPECT_EQ(node2->getPrev(), nullptr);
+
+  EXPECT_EQ(node3->getNext(), nullptr);
+  EXPECT_EQ(node3->getPrev(), node1.get());
+}
+
+TEST_F(IListBasePairTest, moveBeforeFirst)
+{
+  // Assign
+  linkAll();
+
+  // Act & Assert
+  EXPECT_DEATH(IListConcrete::moveBefore(node1.get(), node1.get(), node2.get()),
+               "Trying to insert last before first");
+}
+
+TEST_F(IListBasePairTest, moveBeforeLast)
+{
+  // Assign
+  linkAll();
+
+  // Act
+  IListConcrete::moveBefore(node2.get(), node1.get(), node2.get());
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
+
+  EXPECT_EQ(node1->getNext(), node2.get());
+  EXPECT_EQ(node1->getPrev(), nullptr);
+
+  EXPECT_EQ(node2->getNext(), nullptr);
+  EXPECT_EQ(node2->getPrev(), node1.get());
+}
+
+TEST_F(IListBasePairTest, moveBeforeEmpty)
+{
+  // Assign
+  linkAll();
+
+  // Act
+  IListConcrete::moveBefore(node2.get(), node1.get(), node1.get());
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
+
+  EXPECT_EQ(node1->getNext(), node2.get());
+  EXPECT_EQ(node1->getPrev(), nullptr);
+
+  EXPECT_EQ(node2->getNext(), nullptr);
+  EXPECT_EQ(node2->getPrev(), node1.get());
+}
+
+using IListBase6Test = IListBaseTest<6>;
+
+TEST_F(IListBase6Test, moveBefore)
+{
+  // Assign
+  link(0, 2);
+  link(2, 6);
+
+  auto &node3 = nodes[2];
+  auto &node4 = nodes[3];
+  auto &node5 = nodes[4];
+  auto &node6 = nodes[5];
+
+  // Act
+  /**
+   * Here we have two lists
+   * 10 -> 20
+   * 30 -> 40 -> 50 -> 60
+   * We need to transform they to
+   * 10 -> 40 -> 50 -> 20
+   * 30 -> 60
+   */
+
+  IListConcrete::moveBefore(node2.get(), node4.get(), node6.get());
+
+  // Assert
+  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2); // And here
+  ASSERT_EQ(node3->getElem(), 30);   // And here
+  ASSERT_EQ(node4->getElem(), 40);   // And here
+  ASSERT_EQ(node5->getElem(), 50);   // And here
+  ASSERT_EQ(node6->getElem(), 60);   // And here
+
+  EXPECT_EQ(node1->getNext(), node4.get());
+  EXPECT_EQ(node1->getPrev(), nullptr);
+
+  EXPECT_EQ(node2->getNext(), nullptr);
+  EXPECT_EQ(node2->getPrev(), node5.get());
+
+  EXPECT_EQ(node3->getNext(), node6.get());
+  EXPECT_EQ(node3->getPrev(), nullptr);
+
+  EXPECT_EQ(node4->getNext(), node5.get());
+  EXPECT_EQ(node4->getPrev(), node1.get());
+
+  EXPECT_EQ(node5->getNext(), node2.get());
+  EXPECT_EQ(node5->getPrev(), node4.get());
+
+  EXPECT_EQ(node6->getNext(), nullptr);
+  EXPECT_EQ(node6->getPrev(), node3.get());
+}
+
+template <std::size_t Size>
+class IListTest : public IListBaseTest<Size>
+{};
+
+using IListPairTest = IListTest<2>;
+
+TEST(IListTest, empty)
+{
+  // Assign
+  ljit::IList<ConcreteNode> ilist;
+
+  // Act & Assert
+  EXPECT_TRUE(ilist.empty());
+  EXPECT_EQ(ilist.begin(), ilist.end());
+  EXPECT_EQ(ilist.size(), 0);
+}
+
+TEST_F(IListPairTest, stateCheck)
+{
+  // Assign
+  ljit::IList<ConcreteNode> list;
+
+  // Act
+  list.push_back(node1.release());
+  list.push_back(node2.release());
+
+  // Assert
+  EXPECT_EQ(list.front().getElem(), val1);
+  EXPECT_EQ(list.back().getElem(), val2);
 }

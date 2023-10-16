@@ -19,13 +19,14 @@ struct Param final : public Value
 
 class Function final
 {
-  IntrusiveList<BasicBlock> m_bbs;
+  IList<BasicBlock> m_bbs;
   std::list<Param> m_params;
 
 public:
-  auto appendBB()
+  auto *appendBB()
   {
-    return m_bbs.emplaceBack(std::make_unique<BasicBlock>());
+    m_bbs.push_back(new BasicBlock{});
+    return &m_bbs.back();
   }
 
   auto appendParam(Type type)

@@ -2,15 +2,10 @@
 #define LEECH_JIT_INCLUDE_IR_BASIC_BLOCK_HH_INCLUDED
 
 #include <algorithm>
-#include <array>
 #include <cstddef>
-#include <memory>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "common/common.hh"
 
 #include "inst.hh"
 #include "intrusive_list/intrusive_list.hh"
@@ -18,9 +13,9 @@
 namespace ljit
 {
 
-class BasicBlock final : public IntrusiveListNode<BasicBlock>
+class BasicBlock final : public IListNode
 {
-  IntrusiveList<Inst> m_instructions{};
+  IList<Inst> m_instructions{};
   std::vector<BasicBlock *> m_pred{};
   std::size_t m_id{};
 
@@ -44,21 +39,24 @@ public:
     m_pred.push_back(bb);
   }
 
-  [[nodiscard]] auto getFirst() const noexcept
+  [[nodiscard]] auto &getFirst() const noexcept
   {
-    return m_instructions.getFirst();
+    return m_instructions.front();
   }
-  [[nodiscard]] auto getLast() const noexcept
+  [[nodiscard]] auto &getLast() const noexcept
   {
-    return m_instructions.getLast();
+    return m_instructions.back();
   }
 
   template <class T, class... Args>
-  auto emplaceInstBack(Args &&...args)
+  auto pushInstBack(Args &&...args)
   {
-    auto *const inserted = static_cast<T *>(
-      m_instructions.emplaceBack(makeInst<T>(std::forward<Args>(args)...)));
-    inserted->setBB(this);
+    auto *const toIns =
+      static_cast<T *>(makeInst<T>(std::forward<Args>(args)...));
+
+    toIns->setBB(this);
+
+    m_instructions.push_back(toIns);
 
     auto &&setThisAsPred = [this](BasicBlock *next) {
       next->addPredecessor(this);
@@ -66,13 +64,13 @@ public:
 
     if constexpr (std::is_same_v<T, IfInstr>)
     {
-      setThisAsPred(inserted->getTrueBB());
-      setThisAsPred(inserted->getFalseBB());
+      setThisAsPred(toIns->getTrueBB());
+      setThisAsPred(toIns->getFalseBB());
     }
     else if constexpr (std::is_same_v<T, JumpInstr>)
-      setThisAsPred(inserted->getTarget());
+      setThisAsPred(toIns->getTarget());
 
-    return inserted;
+    return toIns;
   }
 
   void print(std::ostream &ost) const
