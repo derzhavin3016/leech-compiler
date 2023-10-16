@@ -1,9 +1,7 @@
 #include <algorithm>
 #include <cstddef>
-#include <gtest/gtest-death-test.h>
-#include <gtest/gtest-test-part.h>
 #include <memory>
-#include <tuple>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -53,13 +51,21 @@ template <std::size_t Size>
 class IListBaseTest : public ::testing::Test
 {
 protected:
-  IListBaseTest() : nodes(Size), node1(nodes.front()), node2(nodes[1])
+  IListBaseTest()
+    : values(Size),
+      val1(values.front()),
+      val2(values[1]),
+      nodes(Size),
+      node1(nodes.front()),
+      node2(nodes[1])
   {
-    std::generate(nodes.begin(), nodes.end(),
-                  [i = std::size_t{1}, this]() mutable {
-                    return std::make_unique<ConcreteNode>(
-                      i++ * static_cast<std::size_t>(val1));
-                  });
+    static constexpr int kInitVal = 10;
+    std::generate(values.begin(), values.end(),
+                  [i = int{1}]() mutable { return i++ * kInitVal; });
+
+    std::transform(values.begin(), values.end(), nodes.begin(), [](auto val) {
+      return std::make_unique<ConcreteNode>(val);
+    });
   }
   void linkAll()
   {
@@ -68,14 +74,17 @@ protected:
   void link(std::size_t start, std::size_t end)
   {
     LJIT_ASSERT(start < nodes.size());
-    LJIT_ASSERT(end <= nodes.size() && end >= 1);
+    LJIT_ASSERT(end <= nodes.size());
+    LJIT_ASSERT(end > 1ULL);
+
     for (; start < end - 1; ++start)
     {
       IListConcrete::insertAfter(nodes[start].get(), nodes[start + 1].get());
     }
   }
-  int val1 = 10;
-  int val2 = 2 * val1;
+  std::vector<int> values{};
+  const int &val1;
+  const int &val2;
   std::vector<std::unique_ptr<ConcreteNode>> nodes{};
 
   std::unique_ptr<ConcreteNode> &node1;
@@ -129,9 +138,9 @@ TEST_F(IListBaseTripleTest, remove)
   IListConcrete::remove(node2.get());
 
   // Assert
-  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
-  ASSERT_EQ(node2->getElem(), val2); // And here
-  ASSERT_EQ(node3->getElem(), 30);   // And here
+  ASSERT_EQ(node1->getElem(), val1);      // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2);      // And here
+  ASSERT_EQ(node3->getElem(), values[2]); // And here
 
   EXPECT_EQ(node1->getNext(), node3.get());
   EXPECT_EQ(node1->getPrev(), nullptr);
@@ -215,12 +224,12 @@ TEST_F(IListBase6Test, moveBefore)
   IListConcrete::moveBefore(node2.get(), node4.get(), node6.get());
 
   // Assert
-  ASSERT_EQ(node1->getElem(), val1); // Something really bad happened
-  ASSERT_EQ(node2->getElem(), val2); // And here
-  ASSERT_EQ(node3->getElem(), 30);   // And here
-  ASSERT_EQ(node4->getElem(), 40);   // And here
-  ASSERT_EQ(node5->getElem(), 50);   // And here
-  ASSERT_EQ(node6->getElem(), 60);   // And here
+  ASSERT_EQ(node1->getElem(), val1);      // Something really bad happened
+  ASSERT_EQ(node2->getElem(), val2);      // And here
+  ASSERT_EQ(node3->getElem(), values[2]); // And here
+  ASSERT_EQ(node4->getElem(), values[3]); // And here
+  ASSERT_EQ(node5->getElem(), values[4]); // And here
+  ASSERT_EQ(node6->getElem(), values[5]); // And here
 
   EXPECT_EQ(node1->getNext(), node4.get());
   EXPECT_EQ(node1->getPrev(), nullptr);

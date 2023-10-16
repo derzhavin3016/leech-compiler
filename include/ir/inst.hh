@@ -4,6 +4,7 @@
 #include <ostream>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "common/common.hh"
 #include "intrusive_list/intrusive_list.hh"

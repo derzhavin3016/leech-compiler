@@ -2,7 +2,6 @@
 #define LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 
 #include <list>
-#include <memory>
 
 #include "basic_block.hh"
 #include "inst.hh"
