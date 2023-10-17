@@ -2,8 +2,6 @@
 #define LEECH_JIT_INCLUDE_COMMON_COMMON_HH_INCLUDED
 
 #include <cstdio>
-#include <string_view>
-#include <tuple>
 #include <type_traits>
 
 #define LJIT_COPY_SEMANTICS(CLS_NAME, EQ)                                      \
@@ -24,7 +22,7 @@
 #define LJIT_DEFAULT_MOVE_SEMANTICS(CLS_NAME)                                  \
   LJIT_MOVE_SEMANTICS(CLS_NAME, default)
 
-#define LJIT_PRINT_ERR(...) std::ignore = std::fprintf(stderr, __VA_ARGS__)
+#define LJIT_PRINT_ERR(...) static_cast<void>(std::fprintf(stderr, __VA_ARGS__))
 
 #define LJIT_ABORT() std::abort()
 

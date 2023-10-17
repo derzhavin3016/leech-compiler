@@ -48,9 +48,9 @@ TEST(Builder, Fibonacci)
   auto *bb3 = func.appendBB();
 
   // build bb0
-  auto *v1 = bb0->emplaceInstBack<ljit::ConstVal_I64>(1);
-  auto *v2 = bb0->emplaceInstBack<ljit::ConstVal_I32>(2);
-  bb0->emplaceInstBack<ljit::JumpInstr>(bb1);
+  auto *v1 = bb0->pushInstBack<ljit::ConstVal_I64>(1);
+  auto *v2 = bb0->pushInstBack<ljit::ConstVal_I32>(2);
+  bb0->pushInstBack<ljit::JumpInstr>(bb1);
 
   {
     ASSERT_EQ(v1->getType(), ljit::Type::I64);
@@ -67,11 +67,11 @@ TEST(Builder, Fibonacci)
   }
 
   // build bb1
-  auto *v3 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I32);
-  auto *v4 = bb1->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kLE, v3, v0);
-  auto *v5 = bb1->emplaceInstBack<ljit::Phi>(ljit::Type::I64);
+  auto *v3 = bb1->pushInstBack<ljit::Phi>(ljit::Type::I32);
+  auto *v4 = bb1->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kLE, v3, v0);
+  auto *v5 = bb1->pushInstBack<ljit::Phi>(ljit::Type::I64);
 
-  auto *iIf = bb1->emplaceInstBack<ljit::IfInstr>(v4, bb2, bb3);
+  auto *iIf = bb1->pushInstBack<ljit::IfInstr>(v4, bb2, bb3);
 
   {
     ASSERT_EQ(v3->getNext(), v4);
@@ -89,12 +89,12 @@ TEST(Builder, Fibonacci)
     ASSERT_EQ(iIf->getFalseBB(), bb3);
   }
   // build bb2
-  auto *v6 = bb2->emplaceInstBack<ljit::ConstVal_I32>(1);
-  auto *v7 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kAdd, v3, v6);
-  auto *v8 = bb2->emplaceInstBack<ljit::Cast>(ljit::Type::I64, v3);
-  auto *v9 = bb2->emplaceInstBack<ljit::BinOp>(ljit::BinOp::Oper::kMul, v5, v8);
+  auto *v6 = bb2->pushInstBack<ljit::ConstVal_I32>(1);
+  auto *v7 = bb2->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kAdd, v3, v6);
+  auto *v8 = bb2->pushInstBack<ljit::Cast>(ljit::Type::I64, v3);
+  auto *v9 = bb2->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kMul, v5, v8);
 
-  auto *jmp = bb2->emplaceInstBack<ljit::JumpInstr>(bb1);
+  auto *jmp = bb2->pushInstBack<ljit::JumpInstr>(bb1);
 
   {
     ASSERT_EQ(v6->getType(), ljit::Type::I32);
@@ -107,7 +107,7 @@ TEST(Builder, Fibonacci)
   }
 
   // build bb3
-  auto *ret = bb2->emplaceInstBack<ljit::Ret>(v5);
+  auto *ret = bb2->pushInstBack<ljit::Ret>(v5);
   {
     ASSERT_EQ(ret->getVal(), v5);
   }

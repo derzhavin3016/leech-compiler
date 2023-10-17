@@ -2,7 +2,6 @@
 #define LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 
 #include <list>
-#include <memory>
 
 #include "basic_block.hh"
 #include "inst.hh"
@@ -11,7 +10,7 @@
 namespace ljit
 {
 
-struct Param final : public Value
+struct Param final : public Value, public IListNode
 {
   explicit Param(Type type) : Value(type)
   {}
@@ -19,18 +18,18 @@ struct Param final : public Value
 
 class Function final
 {
-  IntrusiveList<BasicBlock> m_bbs;
-  std::list<Param> m_params;
+  IList<BasicBlock> m_bbs;
+  IList<Param> m_params;
 
 public:
-  auto appendBB()
+  auto *appendBB()
   {
-    return m_bbs.emplaceBack(std::make_unique<BasicBlock>());
+    return &emplaceBackToList<BasicBlock>(m_bbs);
   }
 
   auto appendParam(Type type)
   {
-    return &m_params.emplace_back(type);
+    return &emplaceBackToList<Param>(m_params, type);
   }
 };
 

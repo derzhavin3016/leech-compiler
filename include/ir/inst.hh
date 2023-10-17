@@ -1,9 +1,10 @@
 #ifndef LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
 
-#include <memory>
 #include <ostream>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include "common/common.hh"
 #include "intrusive_list/intrusive_list.hh"
@@ -49,7 +50,7 @@ public:
 
 class BasicBlock;
 
-class Inst : public Value, public IntrusiveListNode<Inst>
+class Inst : public Value, public IListNode
 {
   InstType m_iType{};
   BasicBlock *m_bb{nullptr};
@@ -62,6 +63,10 @@ protected:
   {}
 
 public:
+  LJIT_NO_COPY_SEMANTICS(Inst);
+  LJIT_NO_MOVE_SEMANTICS(Inst);
+  virtual ~Inst() = default;
+
   [[nodiscard]] auto getBB() const noexcept
   {
     return m_bb;
@@ -76,12 +81,6 @@ public:
   }
   virtual void print(std::ostream &ost) const = 0;
 };
-
-template <class T, class... Args>
-[[nodiscard]] std::unique_ptr<Inst> makeInst(Args &&...args)
-{
-  return std::make_unique<T>(std::forward<Args>(args)...);
-}
 
 template <class... Args>
 struct AlwaysFalse : std::false_type
