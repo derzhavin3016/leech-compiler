@@ -51,12 +51,10 @@ public:
   template <class T, class... Args>
   auto pushInstBack(Args &&...args)
   {
-    auto *const toIns =
-      static_cast<T *>(makeInst<T>(std::forward<Args>(args)...));
+    auto *const toIns = static_cast<T *>(
+      &emplaceBackToList<T>(m_instructions, std::forward<Args>(args)...));
 
     toIns->setBB(this);
-
-    m_instructions.push_back(toIns);
 
     auto &&setThisAsPred = [this](BasicBlock *next) {
       next->addPredecessor(this);

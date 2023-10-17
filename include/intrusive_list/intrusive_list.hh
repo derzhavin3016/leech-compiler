@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string_view>
 #include <type_traits>
+#include <utility>
 
 #include "common/common.hh"
 
@@ -398,6 +399,14 @@ private:
 
 template <class T>
 using IList = IListImpl<T, IListAllocTraits<T>>;
+
+template <class T, class... Args, class NodeTy>
+[[nodiscard]] auto &emplaceBackToList(IList<NodeTy> &ilist, Args &&...args)
+{
+  auto *const toEmplace = new T{std::forward<Args>(args)...};
+  ilist.push_back(toEmplace);
+  return *toEmplace;
+}
 
 template <class T>
 using IListView = IListImpl<T, IListNoAllocTraits<T>>;

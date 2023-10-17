@@ -82,13 +82,6 @@ public:
   virtual void print(std::ostream &ost) const = 0;
 };
 
-template <class T, class... Args>
-[[nodiscard]] Inst *makeInst(Args &&...args)
-{
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  return new T{std::forward<Args>(args)...};
-}
-
 template <class... Args>
 struct AlwaysFalse : std::false_type
 {};

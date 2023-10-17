@@ -10,7 +10,7 @@
 namespace ljit
 {
 
-struct Param final : public Value
+struct Param final : public Value, public IListNode
 {
   explicit Param(Type type) : Value(type)
   {}
@@ -19,18 +19,17 @@ struct Param final : public Value
 class Function final
 {
   IList<BasicBlock> m_bbs;
-  std::list<Param> m_params;
+  IList<Param> m_params;
 
 public:
   auto *appendBB()
   {
-    m_bbs.push_back(new BasicBlock{});
-    return &m_bbs.back();
+    return &emplaceBackToList<BasicBlock>(m_bbs);
   }
 
   auto appendParam(Type type)
   {
-    return &m_params.emplace_back(type);
+    return &emplaceBackToList<Param>(m_params, type);
   }
 };
 
