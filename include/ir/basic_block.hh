@@ -17,6 +17,7 @@ class BasicBlock final : public IListNode
 {
   IList<Inst> m_instructions{};
   std::vector<BasicBlock *> m_pred{};
+  std::vector<BasicBlock *> m_succ{};
   std::size_t m_id{};
 
 public:
@@ -39,6 +40,16 @@ public:
     m_pred.push_back(bb);
   }
 
+  [[nodiscard]] auto numSucc() const noexcept
+  {
+    return m_succ.size();
+  }
+
+  void addSuccessor(BasicBlock *bb)
+  {
+    m_succ.push_back(bb);
+  }
+
   [[nodiscard]] auto &getFirst() const noexcept
   {
     return m_instructions.front();
@@ -56,17 +67,20 @@ public:
 
     toIns->setBB(this);
 
-    auto &&setThisAsPred = [this](BasicBlock *next) {
-      next->addPredecessor(this);
+    auto &&linkSucc = [this](BasicBlock *bb) {
+      this->addSuccessor(bb);
+      bb->addPredecessor(this);
     };
 
     if constexpr (std::is_same_v<T, IfInstr>)
     {
-      setThisAsPred(toIns->getTrueBB());
-      setThisAsPred(toIns->getFalseBB());
+      linkSucc(toIns->getTrueBB());
+      linkSucc(toIns->getFalseBB());
     }
     else if constexpr (std::is_same_v<T, JumpInstr>)
-      setThisAsPred(toIns->getTarget());
+    {
+      linkSucc(toIns->getTarget());
+    }
 
     return toIns;
   }
