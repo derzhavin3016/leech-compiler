@@ -25,6 +25,11 @@ class IListNode
   IListNode *m_next = nullptr;
 
 public:
+  IListNode() = default;
+  LJIT_NO_COPY_SEMANTICS(IListNode);
+  LJIT_NO_MOVE_SEMANTICS(IListNode);
+  ~IListNode() = default;
+
   void setPrev(IListNode *prev) noexcept
   {
     m_prev = prev;
