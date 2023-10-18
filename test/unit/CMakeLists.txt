@@ -5,6 +5,13 @@ list_dirs(UNIT_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(TESTLIST)
 
+macro(ljit_add_utest src)
+  set(TEST_NAME "${src}_test")
+  add_executable(${TEST_NAME} ${src})
+  upd_tar_list(${TEST_NAME} TESTLIST)
+endmacro()
+
+
 foreach(DIR ${UNIT_DIRS})
   add_subdirectory(${DIR})
 endforeach()
