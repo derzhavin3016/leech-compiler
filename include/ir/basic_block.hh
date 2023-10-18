@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/common.hh"
 #include "inst.hh"
 #include "intrusive_list/intrusive_list.hh"
 
@@ -27,6 +28,11 @@ public:
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
 
+  [[nodiscard]] auto getId() const noexcept
+  {
+    return m_id;
+  }
+
   [[nodiscard]] auto size() const noexcept
   {
     return m_instructions.size();
@@ -35,11 +41,6 @@ public:
   [[nodiscard]] auto numPred() const noexcept
   {
     return m_pred.size();
-  }
-
-  void addPredecessor(BasicBlock *bb)
-  {
-    m_pred.push_back(bb);
   }
 
   [[nodiscard]] auto &getPred() const noexcept
@@ -55,11 +56,6 @@ public:
   [[nodiscard]] auto numSucc() const noexcept
   {
     return m_succ.size();
-  }
-
-  void addSuccessor(BasicBlock *bb)
-  {
-    m_succ.push_back(bb);
   }
 
   [[nodiscard]] auto &getFirst() const noexcept
@@ -79,11 +75,6 @@ public:
 
     toIns->setBB(this);
 
-    auto &&linkSucc = [this](BasicBlock *bb) {
-      this->addSuccessor(bb);
-      bb->addPredecessor(this);
-    };
-
     if constexpr (std::is_same_v<T, IfInstr>)
     {
       linkSucc(toIns->getTrueBB());
@@ -102,6 +93,35 @@ public:
     ost << '%' << m_id << ":\n";
     std::for_each(m_instructions.begin(), m_instructions.end(),
                   [&ost](const auto &inst) { inst.print(ost); });
+  }
+
+  void linkSucc(BasicBlock *succ)
+  {
+    linkBBs(this, succ);
+  }
+
+  void linkPred(BasicBlock *pred)
+  {
+    linkBBs(pred, this);
+  }
+
+  static void linkBBs(BasicBlock *pred, BasicBlock *succ) noexcept
+  {
+    LJIT_ASSERT(pred != nullptr);
+    LJIT_ASSERT(succ != nullptr);
+    pred->addSuccessor(succ);
+    succ->addPredecessor(pred);
+  }
+
+private:
+  void addPredecessor(BasicBlock *bb)
+  {
+    m_pred.push_back(bb);
+  }
+
+  void addSuccessor(BasicBlock *bb)
+  {
+    m_succ.push_back(bb);
   }
 };
 
