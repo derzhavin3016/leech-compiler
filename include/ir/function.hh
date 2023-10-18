@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_IR_FUNCTION_HH_INCLUDED
 
 #include "basic_block.hh"
+#include "common/common.hh"
 #include "inst.hh"
 #include "intrusive_list/intrusive_list.hh"
 
@@ -22,7 +23,8 @@ class Function final
 public:
   auto *appendBB()
   {
-    return &emplaceBackToList<BasicBlock>(m_bbs);
+    const auto idx = m_bbs.empty() ? 0ULL : m_bbs.back().getId() + 1;
+    return &emplaceBackToList<BasicBlock>(m_bbs, idx);
   }
 
   auto appendParam(Type type)
@@ -32,6 +34,7 @@ public:
 
   [[nodiscard]] auto makeBBGraph() const noexcept
   {
+    LJIT_ASSERT(!m_bbs.empty());
     return BasicBlockGraph{&m_bbs.front()};
   }
 };
