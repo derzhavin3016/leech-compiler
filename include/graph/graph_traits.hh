@@ -6,8 +6,8 @@ namespace ljit
 template <class GraphTy>
 struct GraphTraits final
 {
-  using node_pointer = GraphTy::pointer;
-  using node_iterator = GraphTy::node_iterator;
+  using node_pointer = typename GraphTy::pointer;
+  using node_iterator = typename GraphTy::node_iterator;
 
   static node_pointer entryPoint(const GraphTy &graph)
   {

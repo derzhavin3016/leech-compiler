@@ -2,40 +2,44 @@
 #define LEECH_JIT_INCLUDE_GRAPH_DFS_HH_INCLUDED
 
 #include <algorithm>
+#include <cstddef>
+#include <iterator>
 #include <stack>
+#include <type_traits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "graph_traits.hh"
 
-namespace ljit
+
+namespace ljit::graph
 {
 template <class GraphTy>
 struct DefaultDFSVisitor final
 {
-  using NodePtr = GraphTraits<GraphTy>::node_pointer;
+  using NodePtr = typename GraphTraits<GraphTy>::node_pointer;
 
   void operator()([[maybe_unused]] NodePtr pNode) const noexcept
   {}
 };
 
 template <class GraphTy, class DFSVisitor>
-auto depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
+void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
 {
   using Traits = GraphTraits<GraphTy>;
-  using NodePtrTy = Traits::node_pointer;
-  using NodeIt = Traits::node_iterator;
+  using NodePtrTy = typename Traits::node_pointer;
+  using NodeIt = typename Traits::node_iterator;
 
-  std::vector<NodePtrTy> visTimes;
   std::unordered_set<NodePtrTy> visited;
   std::stack<std::pair<NodeIt, NodeIt>> toVisit;
 
-  auto entry = Traits::entryPoint(graph);
+  const auto entry = Traits::entryPoint(graph);
+  if (entry == nullptr)
+    return;
 
   auto &&visitNode = [&](NodePtrTy pNode) {
     visited.insert(pNode);
-    visTimes.push_back(pNode);
     vis(pNode);
   };
 
@@ -45,7 +49,7 @@ auto depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
 
   while (!toVisit.empty())
   {
-    auto &&[first, last] = toVisit.top();
+    auto [first, last] = toVisit.top();
     toVisit.pop();
 
     auto unvisNode = std::find_if(first, last, [&visited](auto pNode) {
@@ -56,20 +60,31 @@ auto depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
       continue;
 
     toVisit.emplace(unvisNode, last);
-    auto pNode = *unvisNode;
+    const auto pNode = *unvisNode;
+
+    toVisit.emplace(Traits::succBegin(pNode), Traits::succEnd(pNode));
 
     visitNode(pNode);
   }
-
-  return visTimes;
+}
+template <class GraphTy, class DFSVisitor, class RPONodeIter>
+void depthFirstSearch(const GraphTy &graph, DFSVisitor vis, RPONodeIter it)
+{
+  depthFirstSearch(graph, [&](auto pNode) {
+    *it++ = pNode;
+    vis(pNode);
+  });
 }
 
 template <class GraphTy>
-auto depthFirstSearch(const GraphTy &graph)
+[[nodiscard]] auto depthFirstSearch(const GraphTy &graph)
 {
-  return depthFirstSearch(graph, DefaultDFSVisitor<GraphTy>{});
+  std::vector<typename GraphTraits<GraphTy>::node_pointer> bbs;
+  depthFirstSearch(graph, DefaultDFSVisitor<GraphTy>{},
+                   std::back_inserter(bbs));
+  return bbs;
 }
+} // namespace ljit::graph
 
-} // namespace ljit
 
 #endif /* LEECH_JIT_INCLUDE_GRAPH_DFS_HH_INCLUDED */
