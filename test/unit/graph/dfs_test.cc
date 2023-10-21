@@ -123,6 +123,85 @@ TEST_F(DFSTest, tree)
   EXPECT_EQ(answer, res);
 }
 
+TEST_F(DFSTest, biggerTree)
+{
+  constexpr std::size_t kSize = 10;
+  GenBBs(kSize);
+
+  // Here we just build a tree
+  /*            bb0
+              /     \
+            bb1    bb2
+           /  \     |  \
+         bb3  bb4  bb5  bb6
+        /  \    |
+      bb7  bb8  bb9
+  So the RPO will be 0 1 3 7 8 4 9 2 5 6
+  */
+  const auto answer = makeRPOAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
+
+  makeEdge(0, 1);
+  makeEdge(0, 2);
+
+  makeEdge(1, 3);
+  makeEdge(1, 4);
+
+  makeEdge(3, 7);
+  makeEdge(3, 8);
+
+  makeEdge(4, 9);
+
+  makeEdge(2, 5);
+  makeEdge(2, 6);
+
+  // Act
+  const auto res = getRPOIdx();
+
+  // Assert
+  EXPECT_EQ(answer, res);
+}
+
+TEST_F(DFSTest, biggerNonTree)
+{
+  constexpr std::size_t kSize = 10;
+  GenBBs(kSize);
+
+  // Here we just build a tree
+  /*            bb0
+              /  |   \
+            bb1  |  bb2
+           /  \ /   |  \
+      --bb3  bb4  bb5  bb6
+      |/  \    |  |
+      bb7  bb8  bb9
+  So the RPO will be 0 1 3 7 8 4 9 2 5 6
+  */
+  const auto answer = makeRPOAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
+
+  makeEdge(0, 1);
+  makeEdge(0, 2);
+  makeEdge(0, 4);
+
+  makeEdge(1, 3);
+  makeEdge(1, 4);
+
+  makeEdge(3, 7);
+  makeEdge(3, 7);
+  makeEdge(3, 8);
+
+  makeEdge(4, 9);
+  makeEdge(5, 9);
+
+  makeEdge(2, 5);
+  makeEdge(2, 6);
+
+  // Act
+  const auto res = getRPOIdx();
+
+  // Assert
+  EXPECT_EQ(answer, res);
+}
+
 TEST_F(DFSTest, cycle)
 {
   GenBBs(6);
