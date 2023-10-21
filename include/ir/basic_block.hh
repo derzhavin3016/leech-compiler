@@ -3,11 +3,15 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <fstream>
+#include <ostream>
+#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "common/common.hh"
+#include "graph/dfs.hh"
 #include "inst.hh"
 #include "intrusive_list/intrusive_list.hh"
 
@@ -137,6 +141,32 @@ public:
   [[nodiscard]] pointer getRoot() const noexcept
   {
     return m_root;
+  }
+
+  void dumpDot(std::ostream &ost, const std::string &name = "BBGraph") const
+  {
+    ost << "digraph " << name << "{\n";
+    graph::depthFirstSearch(*this, [&](auto *pNode) {
+      auto &&getName = [](auto *node) {
+        std::ostringstream ss;
+        ss << "bb" << node->getId();
+        return ss.str();
+      };
+      auto &&name = getName(pNode);
+      ost << name << " [label=" << '"' << pNode->getId() << "\"];\n";
+
+      for (const auto &pred : pNode->getPred())
+        ost << getName(pred) << " -> " << name << ";\n";
+    });
+    ost << "}";
+  }
+
+  void dumpDot(const std::string &filename,
+               const std::string &name = "BBGraph") const
+  {
+    std::ofstream oft{filename};
+    LJIT_ASSERT(oft.is_open());
+    dumpDot(oft, name);
   }
 
 private:
