@@ -1,2 +1,1 @@
-add_executable(example example.cc)
-upd_tar_list(example TESTLIST)
+ljit_add_utest(example.cc)

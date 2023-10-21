@@ -3,12 +3,19 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <fstream>
+#include <ostream>
+#include <sstream>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "common/common.hh"
+#include "graph/dfs.hh"
 #include "inst.hh"
 #include "intrusive_list/intrusive_list.hh"
+
+#include "graph/graph_traits.hh"
 
 namespace ljit
 {
@@ -25,6 +32,11 @@ public:
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
 
+  [[nodiscard]] auto getId() const noexcept
+  {
+    return m_id;
+  }
+
   [[nodiscard]] auto size() const noexcept
   {
     return m_instructions.size();
@@ -35,19 +47,19 @@ public:
     return m_pred.size();
   }
 
-  void addPredecessor(BasicBlock *bb)
+  [[nodiscard]] auto &getPred() const noexcept
   {
-    m_pred.push_back(bb);
+    return m_pred;
+  }
+
+  [[nodiscard]] auto &getSucc() const noexcept
+  {
+    return m_succ;
   }
 
   [[nodiscard]] auto numSucc() const noexcept
   {
     return m_succ.size();
-  }
-
-  void addSuccessor(BasicBlock *bb)
-  {
-    m_succ.push_back(bb);
   }
 
   [[nodiscard]] auto &getFirst() const noexcept
@@ -67,11 +79,6 @@ public:
 
     toIns->setBB(this);
 
-    auto &&linkSucc = [this](BasicBlock *bb) {
-      this->addSuccessor(bb);
-      bb->addPredecessor(this);
-    };
-
     if constexpr (std::is_same_v<T, IfInstr>)
     {
       linkSucc(toIns->getTrueBB());
@@ -90,6 +97,101 @@ public:
     ost << '%' << m_id << ":\n";
     std::for_each(m_instructions.begin(), m_instructions.end(),
                   [&ost](const auto &inst) { inst.print(ost); });
+  }
+
+  void linkSucc(BasicBlock *succ)
+  {
+    linkBBs(this, succ);
+  }
+
+  void linkPred(BasicBlock *pred)
+  {
+    linkBBs(pred, this);
+  }
+
+  static void linkBBs(BasicBlock *pred, BasicBlock *succ) noexcept
+  {
+    LJIT_ASSERT(pred != nullptr);
+    LJIT_ASSERT(succ != nullptr);
+    pred->addSuccessor(succ);
+    succ->addPredecessor(pred);
+  }
+
+private:
+  void addPredecessor(BasicBlock *bb)
+  {
+    m_pred.push_back(bb);
+  }
+
+  void addSuccessor(BasicBlock *bb)
+  {
+    m_succ.push_back(bb);
+  }
+};
+
+class BasicBlockGraph final
+{
+public:
+  using value_type = const BasicBlock;
+  using pointer = value_type *;
+
+  explicit BasicBlockGraph(pointer root) noexcept : m_root(root)
+  {}
+
+  [[nodiscard]] pointer getRoot() const noexcept
+  {
+    return m_root;
+  }
+
+  void dumpDot(std::ostream &ost,
+               const std::string &graphName = "BBGraph") const
+  {
+    ost << "digraph " << graphName << "{\n";
+    graph::depthFirstSearch(*this, [&](auto *pNode) {
+      auto &&getName = [](auto *node) {
+        std::ostringstream ss;
+        ss << "bb" << node->getId();
+        return ss.str();
+      };
+      auto &&name = getName(pNode);
+      ost << name << " [label=" << '"' << pNode->getId() << "\"];\n";
+
+      for (const auto &pred : pNode->getPred())
+        ost << getName(pred) << " -> " << name << ";\n";
+    });
+    ost << "}";
+  }
+
+  void dumpDot(const std::string &filename,
+               const std::string &name = "BBGraph") const
+  {
+    std::ofstream oft{filename};
+    LJIT_ASSERT(oft.is_open());
+    dumpDot(oft, name);
+  }
+
+private:
+  pointer m_root{};
+};
+
+template <>
+struct GraphTraits<BasicBlockGraph> final
+{
+  using node_pointer = BasicBlockGraph::pointer;
+  using node_iterator = decltype(BasicBlock{}.getSucc().begin());
+
+  static node_pointer entryPoint(const BasicBlockGraph &graph)
+  {
+    return graph.getRoot();
+  }
+
+  static node_iterator succBegin(node_pointer node)
+  {
+    return node->getSucc().begin();
+  }
+  static node_iterator succEnd(node_pointer node)
+  {
+    return node->getSucc().end();
   }
 };
 } // namespace ljit
