@@ -3,13 +3,13 @@ cpmaddpackage(
   CLI11
   GITHUB_REPOSITORY
   CLIUtils/CLI11
-  GIT_TAG
-  v2.3.2
   VERSION
-  2.3.2
+  2.3.1
   OPTIONS
   "CLI11_PRECOMPILED ON"
   EXCLUDE_FROM_ALL
+  TRUE
+  SYSTEM
   TRUE)
 
 list_dirs(DIRS ${CMAKE_CURRENT_SOURCE_DIR})
@@ -21,6 +21,8 @@ foreach(DIR ${DIRS})
 endforeach()
 
 foreach(TOOL ${TOOLLIST})
+  target_include_directories(${TOOL} SYSTEM
+                             PRIVATE "${CLI11_SOURCE_DIR}/include")
   target_link_libraries(${TOOL} PRIVATE CLI11::CLI11)
 
   set_target_properties(${TOOL} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
