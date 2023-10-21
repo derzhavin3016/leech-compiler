@@ -143,9 +143,10 @@ public:
     return m_root;
   }
 
-  void dumpDot(std::ostream &ost, const std::string &name = "BBGraph") const
+  void dumpDot(std::ostream &ost,
+               const std::string &graphName = "BBGraph") const
   {
-    ost << "digraph " << name << "{\n";
+    ost << "digraph " << graphName << "{\n";
     graph::depthFirstSearch(*this, [&](auto *pNode) {
       auto &&getName = [](auto *node) {
         std::ostringstream ss;
