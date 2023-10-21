@@ -33,6 +33,7 @@ include(cmake/list_dirs.cmake)
 include(cmake/upd_tar_list.cmake)
 include(cmake/comp_flags.cmake)
 include(cmake/clang_format.cmake)
+include(cmake/CPM.cmake)
 
 # indicate the docs build
 option(BUILD_DOC "Build docs" OFF)
@@ -50,8 +51,6 @@ if(BUILD_TESTS)
   enable_testing()
   add_subdirectory(test)
 endif()
-
-add_subdirectory(thirdparty)
 
 message("Collected libs: ${LIBLIST}")
 message("Collected tools: ${TOOLLIST}")
