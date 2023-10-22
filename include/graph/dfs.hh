@@ -2,16 +2,13 @@
 #define LEECH_JIT_INCLUDE_GRAPH_DFS_HH_INCLUDED
 
 #include <algorithm>
-#include <cstddef>
 #include <iterator>
 #include <stack>
-#include <type_traits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
 #include "graph_traits.hh"
-
 
 namespace ljit::graph
 {
@@ -41,11 +38,10 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
   auto &&visitNode = [&](NodePtrTy pNode) {
     visited.insert(pNode);
     vis(pNode);
+    toVisit.emplace(Traits::succBegin(pNode), Traits::succEnd(pNode));
   };
 
   visitNode(entry);
-
-  toVisit.emplace(Traits::succBegin(entry), Traits::succEnd(entry));
 
   while (!toVisit.empty())
   {
@@ -60,10 +56,8 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
       continue;
 
     toVisit.emplace(unvisNode, last);
+
     const auto pNode = *unvisNode;
-
-    toVisit.emplace(Traits::succBegin(pNode), Traits::succEnd(pNode));
-
     visitNode(pNode);
   }
 }
@@ -85,6 +79,5 @@ template <class GraphTy>
   return bbs;
 }
 } // namespace ljit::graph
-
 
 #endif /* LEECH_JIT_INCLUDE_GRAPH_DFS_HH_INCLUDED */

@@ -1,9 +1,9 @@
-#ifndef LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
-#define LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED
+#ifndef LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED
+#define LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED
 
+#include <cstdint>
 #include <ostream>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 #include "common/common.hh"
@@ -278,4 +278,4 @@ public:
 
 } // namespace ljit
 
-#endif /* LEECH_JIT_INCLUDE_INSTRUCTION_INST_HH_INCLUDED */
+#endif /* LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED */
