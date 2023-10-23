@@ -193,6 +193,15 @@ struct GraphTraits<BasicBlockGraph> final
   {
     return node->getSucc().end();
   }
+
+  static node_iterator predBegin(node_pointer node)
+  {
+    return node->getPred().begin();
+  }
+  static node_iterator predEnd(node_pointer node)
+  {
+    return node->getPred().end();
+  }
 };
 } // namespace ljit
 
