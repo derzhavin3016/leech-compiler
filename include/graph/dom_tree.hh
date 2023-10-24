@@ -4,7 +4,7 @@
 #include "common/common.hh"
 #include "dfs.hh"
 
-#include "dom_tree_node.hh"
+#include "dom_tree_types.hh"
 #include "graph/dsu.hh"
 #include "graph/graph_traits.hh"
 #include <algorithm>
@@ -146,6 +146,8 @@ private:
                     auto &nodeIdomId = m_idoms[nodeId];
                     if (nodeIdomId != m_sdoms[nodeId])
                       nodeIdomId = m_idoms[nodeIdomId];
+
+                    m_domTree.m_domMap[nodeId].push_back(nodeIdomId);
                   });
   }
 };

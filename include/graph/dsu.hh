@@ -2,8 +2,9 @@
 #define LEECH_JIT_INCLUDE_GRAPH_DSU_HH_INCLUDED
 
 #include "common/common.hh"
-#include "graph/dom_tree_node.hh"
-#include "graph/graph_traits.hh"
+
+#include "dom_tree_types.hh"
+#include "graph_traits.hh"
 
 namespace ljit::graph
 {
