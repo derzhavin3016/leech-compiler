@@ -135,12 +135,21 @@ public:
   using value_type = const BasicBlock;
   using pointer = value_type *;
 
-  explicit BasicBlockGraph(pointer root) noexcept : m_root(root)
+  BasicBlockGraph(pointer root, std::size_t size) noexcept
+    : m_root(root), m_size(size)
+  {}
+
+  explicit BasicBlockGraph(pointer root) noexcept : BasicBlockGraph{root, {}}
   {}
 
   [[nodiscard]] pointer getRoot() const noexcept
   {
     return m_root;
+  }
+
+  [[nodiscard]] auto size() const noexcept
+  {
+    return m_size;
   }
 
   void dumpDot(std::ostream &ost,
@@ -172,6 +181,7 @@ public:
 
 private:
   pointer m_root{};
+  std::size_t m_size{};
 };
 
 template <>
@@ -180,9 +190,18 @@ struct GraphTraits<BasicBlockGraph> final
   using node_pointer = BasicBlockGraph::pointer;
   using node_iterator = decltype(BasicBlock{}.getSucc().begin());
 
+  static std::size_t id(node_pointer ptr)
+  {
+    return ptr->getId();
+  }
+
   static node_pointer entryPoint(const BasicBlockGraph &graph)
   {
     return graph.getRoot();
+  }
+  static std::size_t size(const BasicBlockGraph &graph)
+  {
+    return graph.size();
   }
 
   static node_iterator succBegin(node_pointer node)

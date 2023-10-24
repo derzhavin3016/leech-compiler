@@ -321,7 +321,9 @@ public:
 
   [[nodiscard]] auto size() const noexcept
   {
-    return std::distance(begin(), end());
+    const auto sz = std::distance(begin(), end());
+    LJIT_ASSERT(sz > 0);
+    return static_cast<std::size_t>(sz);
   }
 
   [[nodiscard]] const_reference front() const noexcept
