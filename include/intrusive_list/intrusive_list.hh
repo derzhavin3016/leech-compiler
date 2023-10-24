@@ -322,7 +322,7 @@ public:
   [[nodiscard]] auto size() const noexcept
   {
     const auto sz = std::distance(begin(), end());
-    LJIT_ASSERT(sz > 0);
+    LJIT_ASSERT(sz >= 0);
     return static_cast<std::size_t>(sz);
   }
 
