@@ -34,28 +34,35 @@ TEST_F(DomTreeTest, example1)
   genBBs(kSize);
 
   /* Example 1
-   *                     0
-   *                     |
-   *                     1---
-   *                    /    \
-   *                   2  4--5
-   *                   | /   |
-   *                   3---- 6
-   * Directions:
-   * 0 -> 1
    *
-   * 1 -> 2
-   * 1 -> 5
-   *
-   * 2 -> 3
-   *
-   * 5 -> 4
-   * 5 -> 6
-   *
-   * 4 -> 3
-   *
-   * 6 -> 3
-   */
+   *             +---+
+   *             | 0 |
+   *             +---+
+   *               |
+   *               |
+   *               v
+   *   +---+     +---+
+   *   | 2 | <-- | 1 |
+   *   +---+     +---+
+   *     |         |
+   *     |         |
+   *     |         v
+   *     |       +---+     +---+
+   *     |       | 5 | --> | 6 |
+   *     |       +---+     +---+
+   *     |         |         |
+   *     |         |         |
+   *     |         v         |
+   *     |       +---+       |
+   *     |       | 4 |       |
+   *     |       +---+       |
+   *     |         |         |
+   *     |         |         |
+   *     |         v         |
+   *     |       +---+       |
+   *     +-----> | 3 | <-----+
+   *             +---+
+   **/
   makeEdge(0, 1);
 
   makeEdge(1, 2);
@@ -92,50 +99,105 @@ TEST_F(DomTreeTest, example2)
   // Assign
   constexpr std::size_t kSize = 11;
   genBBs(kSize);
-  auto &&toId = [](char letter) -> std::size_t {
-    return static_cast<std::size_t>(letter) - static_cast<std::size_t>('A');
-  };
-  auto &&makeLEdge = [&](char pred, char succ) {
-    makeEdge(toId(pred), toId(succ));
-  };
 
-  makeLEdge('A', 'B');
+  /*
+   *
+   *            +----+
+   *            | 0  |
+   *            +----+
+   *              |
+   *              |
+   *              v
+   *            +----+
+   *    +-----> | 1  | -+
+   *    |       +----+  |
+   *    |         |     |
+   *    |         |     |
+   *    |         v     |
+   *    |       +----+  |
+   *    |       | 9  |  |
+   *    |       +----+  |
+   *    |         |     |
+   *    |         |     |
+   *    |         v     |
+   *    |       +----+  |
+   *    |    +> | 2  | <+
+   *    |    |  +----+
+   *    |    |    |
+   *    |    |    |
+   *    |    |    v
+   *    |    |  +----+
+   *    |    +- | 3  |
+   *    |       +----+
+   *    |         |
+   *    |         |
+   *    |         v
+   *    |       +----+
+   *    |       | 4  | <+
+   *    |       +----+  |
+   *    |         |     |
+   *    |         |     |
+   *    |         v     |
+   *    |       +----+  |
+   *    |       | 5  | -+
+   *    |       +----+
+   *    |         |
+   *    |         |
+   *    |         v
+   *  +---+     +----+
+   *  | 7 | <-- | 6  |
+   *  +---+     +----+
+   *              |
+   *              |
+   *              v
+   *            +----+
+   *            | 8  |
+   *            +----+
+   *              |
+   *              |
+   *              v
+   *            +----+
+   *            | 10 |
+   *            +----+
+   */
 
-  makeLEdge('B', 'J');
-  makeLEdge('B', 'C');
+  makeEdge(0, 1);
 
-  makeLEdge('C', 'D');
+  makeEdge(1, 9);
+  makeEdge(1, 2);
 
-  makeLEdge('D', 'C');
-  makeLEdge('D', 'E');
+  makeEdge(2, 3);
 
-  makeLEdge('E', 'F');
+  makeEdge(3, 2);
+  makeEdge(3, 4);
 
-  makeLEdge('F', 'E');
-  makeLEdge('F', 'G');
+  makeEdge(4, 5);
 
-  makeLEdge('G', 'H');
-  makeLEdge('G', 'I');
+  makeEdge(5, 4);
+  makeEdge(5, 6);
 
-  makeLEdge('H', 'B');
+  makeEdge(6, 7);
+  makeEdge(6, 8);
 
-  makeLEdge('I', 'K');
+  makeEdge(7, 1);
 
-  makeLEdge('J', 'C');
+  makeEdge(8, 10);
+
+  makeEdge(9, 2);
 
   // Act
   auto domTree = ljit::graph::buildDomTree(func->makeBBGraph());
   // Assert
-  auto &&isDom = [&](char dom, char node) {
-    return domTree.isDominator(bbs[toId(dom)], bbs[toId(node)]);
+  auto &&isDom = [&](std::size_t dom, std::size_t node) {
+    return domTree.isDominator(bbs[dom], bbs[node]);
   };
-  EXPECT_TRUE(isDom('A', 'B'));
+  EXPECT_TRUE(isDom(0, 1));
 
-  EXPECT_TRUE(isDom('B', 'J'));
-  EXPECT_TRUE(isDom('B', 'C'));
+  EXPECT_TRUE(isDom(1, 9));
+  EXPECT_TRUE(isDom(1, 2));
 
-  EXPECT_TRUE(isDom('C', 'D'));
-  EXPECT_TRUE(isDom('D', 'E'));
-  EXPECT_TRUE(isDom('E', 'F'));
-  EXPECT_TRUE(isDom('F', 'G'));
+  EXPECT_TRUE(isDom(2, 3));
+  EXPECT_TRUE(isDom(3, 4));
+  EXPECT_TRUE(isDom(4, 5));
+  EXPECT_TRUE(isDom(5, 6));
 }

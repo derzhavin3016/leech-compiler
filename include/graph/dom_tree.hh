@@ -185,7 +185,7 @@ private:
         const bool notFirst = node != m_dfsTimes.front();
 
         if (notFirst)
-          m_sdommed[m_revIdMap[sdom]].push_back(node);
+          m_sdommed[Traits::id(m_dfsTimes[sdom])].push_back(node);
 
         for (const auto &dominatee : m_sdommed[nodeId])
         {
@@ -218,8 +218,10 @@ private:
                     if (nodeIdomTime != m_sdoms[nodeTime])
                       nodeIdomTime = m_idoms[nodeIdomTime];
 
-                    m_domTree.m_tree[nodeId].setIDom(m_dfsTimes[nodeIdomTime]);
-                    m_domTree.m_tree[m_revIdMap[nodeIdomTime]].addDommed(node);
+                    const auto idomNode = m_dfsTimes[nodeIdomTime];
+
+                    m_domTree.m_tree[nodeId].setIDom(idomNode);
+                    m_domTree.m_tree[Traits::id(idomNode)].addDommed(node);
                   });
     DUMP();
   }
