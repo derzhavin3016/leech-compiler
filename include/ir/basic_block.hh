@@ -192,6 +192,7 @@ struct GraphTraits<BasicBlockGraph> final
 
   static std::size_t id(node_pointer ptr)
   {
+    LJIT_ASSERT(ptr != nullptr);
     return ptr->getId();
   }
 

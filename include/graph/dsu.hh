@@ -15,8 +15,11 @@ public:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
 
-  explicit DSU(const IdToIdMap &sdoms)
-    : m_sdoms(sdoms), m_parents(sdoms.size()), m_labels(sdoms.size())
+  explicit DSU(const IdToIdMap &sdoms, const IdToIdMap &rev)
+    : m_sdoms(sdoms),
+      m_rev(rev),
+      m_parents(sdoms.size()),
+      m_labels(sdoms.size())
   {}
 
   LJIT_NO_COPY_SEMANTICS(DSU);
@@ -45,6 +48,7 @@ public:
 
   [[nodiscard]] NodePtrTy find(NodePtrTy toFind)
   {
+    LJIT_ASSERT(toFind != nullptr);
     auto &parent = accessParent(toFind);
     if (toFind == parent)
       return toFind;
@@ -69,7 +73,7 @@ public:
 private:
   [[nodiscard]] IdToIdMap::value_type getSdomId(NodePtrTy node) const
   {
-    return m_sdoms[Traits::id(node)];
+    return m_sdoms[m_rev[Traits::id(node)]];
   }
 
   [[nodiscard]] auto &accessParent(NodePtrTy node) const
@@ -91,6 +95,7 @@ private:
   }
 
   const IdToIdMap &m_sdoms;
+  const IdToIdMap &m_rev;
 
   // parent of i’th node in the forest maintained during step 2 of the algorithm
   IdToNodeMap<NodePtrTy> m_parents;
