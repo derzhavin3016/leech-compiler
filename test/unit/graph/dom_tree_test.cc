@@ -200,4 +200,9 @@ TEST_F(DomTreeTest, example2)
   EXPECT_TRUE(isDom(3, 4));
   EXPECT_TRUE(isDom(4, 5));
   EXPECT_TRUE(isDom(5, 6));
+
+  EXPECT_TRUE(isDom(6, 7));
+  EXPECT_TRUE(isDom(6, 8));
+
+  EXPECT_TRUE(isDom(8, 10));
 }
