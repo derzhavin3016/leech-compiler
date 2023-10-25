@@ -13,7 +13,7 @@ class DSU final
 {
 public:
   using Traits = GraphTraits<GraphTy>;
-  using NodePtrTy = Traits::node_pointer;
+  using NodePtrTy = typename Traits::node_pointer;
 
   explicit DSU(const IdToIdMap &sdoms)
     : m_sdoms(sdoms), m_parents(sdoms.size()), m_labels(sdoms.size())

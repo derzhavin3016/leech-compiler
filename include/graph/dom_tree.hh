@@ -42,7 +42,7 @@ template <class GraphTy>
 class DomTreeBuilder final
 {
   using Traits = GraphTraits<GraphTy>;
-  using NodePtrTy = Traits::node_pointer;
+  using NodePtrTy = typename Traits::node_pointer;
 
   LJIT_NO_MOVE_SEMANTICS(DomTreeBuilder);
   LJIT_NO_COPY_SEMANTICS(DomTreeBuilder);
