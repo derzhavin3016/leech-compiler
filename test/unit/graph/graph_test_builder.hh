@@ -37,6 +37,7 @@ protected:
 
   void buildExample1();
   void buildExample2();
+  void buildExample3();
 
   std::unique_ptr<ljit::Function> func{};
   std::vector<ljit::BasicBlock *> bbs{};
@@ -44,34 +45,34 @@ protected:
 
 /* Example 1
  *
- *             +---+
- *             | 0 |
- *             +---+
- *               |
- *               |
- *               v
- *   +---+     +---+
- *   | 2 | <-- | 1 |
- *   +---+     +---+
- *     |         |
- *     |         |
- *     |         v
- *     |       +---+     +---+
- *     |       | 5 | --> | 6 |
- *     |       +---+     +---+
- *     |         |         |
- *     |         |         |
- *     |         v         |
- *     |       +---+       |
- *     |       | 4 |       |
- *     |       +---+       |
- *     |         |         |
- *     |         |         |
- *     |         v         |
- *     |       +---+       |
- *     +-----> | 3 | <-----+
- *             +---+
- **/
+ *            +---+
+ *            | 0 |
+ *            +---+
+ *              |
+ *              |
+ *              v
+ *  +---+     +---+
+ *  | 2 | <-- | 1 |
+ *  +---+     +---+
+ *    |         |
+ *    |         |
+ *    |         v
+ *    |       +---+     +---+
+ *    |       | 5 | --> | 6 |
+ *    |       +---+     +---+
+ *    |         |         |
+ *    |         |         |
+ *    |         v         |
+ *    |       +---+       |
+ *    |       | 4 |       |
+ *    |       +---+       |
+ *    |         |         |
+ *    |         |         |
+ *    |         v         |
+ *    |       +---+       |
+ *    +-----> | 3 | <-----+
+ *            +---+
+ */
 inline void GraphTestBuilder::buildExample1()
 {
   genBBs(7);
@@ -90,7 +91,7 @@ inline void GraphTestBuilder::buildExample1()
   makeEdge(6, 3);
 }
 
-/*
+/* Example 2
  *
  *            +----+
  *            | 0  |
@@ -176,6 +177,78 @@ inline void GraphTestBuilder::buildExample2()
   makeEdge(8, 10);
 
   makeEdge(9, 2);
+}
+
+/* Example 3
+ *
+ *       +------------------------+
+ *       |                        |
+ *       |                 +---+  |
+ *       |                 | 0 |  |
+ *       |                 +---+  |
+ *       |                   |    |
+ *       |                   |    |
+ *       |                   v    |
+ *     +---+     +---+     +---+  |
+ *     | 5 | <-- | 4 | <-- | 1 | <+
+ *     +---+     +---+     +---+
+ *       |         |         |
+ *       |         |         |
+ *       v         |         v
+ *     +---+       |       +---+
+ *  +- | 7 |       |       | 2 | <+
+ *  |  +---+       |       +---+  |
+ *  |    |         |         |    |
+ *  |    |         |         |    |
+ *  |    |         |         v    |
+ *  |    |         |       +---+  |
+ *  |    |         +-----> | 3 |  |
+ *  |    |                 +---+  |
+ *  |    |                   |    |
+ *  |    |                   |    |
+ *  |    |                   v    |
+ *  |    |                 +---+  |
+ *  |    +---------------> | 6 | -+
+ *  |                      +---+
+ *  |                        |
+ *  |                        |
+ *  |                        v
+ *  |                      +---+
+ *  |                      | 8 |
+ *  |                      +---+
+ *  |                        ^
+ *  +------------------------+
+ */
+inline void GraphTestBuilder::buildExample3()
+{
+  auto &&toId = [](char letter) {
+    return static_cast<std::size_t>(letter) - 'A';
+  };
+  auto &&edge = [&, this](char pred, char succ) {
+    makeEdge(toId(pred), toId(succ));
+  };
+  genBBs(9);
+
+  edge('A', 'B');
+
+  edge('B', 'C');
+  edge('B', 'E');
+
+  edge('C', 'D');
+
+  edge('D', 'G');
+
+  edge('E', 'D');
+  edge('E', 'F');
+
+  edge('F', 'B');
+  edge('F', 'H');
+
+  edge('G', 'C');
+  edge('G', 'I');
+
+  edge('H', 'G');
+  edge('H', 'I');
 }
 } // namespace ljit::testing
 

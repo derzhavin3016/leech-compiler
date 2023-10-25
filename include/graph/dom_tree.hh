@@ -43,6 +43,8 @@ public:
       node.dump(ost);
   }
 
+  DominatorTree() = default;
+
 private:
   template <class T>
   friend class DomTreeBuilder;

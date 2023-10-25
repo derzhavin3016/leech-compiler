@@ -3,11 +3,24 @@
 #include "graph_test_builder.hh"
 
 #include "graph/dom_tree.hh"
+#include "ir/basic_block.hh"
 
 class DomTreeTest : public ljit::testing::GraphTestBuilder
 {
 protected:
   DomTreeTest() = default;
+
+  void buildDomTree()
+  {
+    domTree = ljit::graph::buildDomTree(func->makeBBGraph());
+  }
+
+  [[nodiscard]] bool isDom(std::size_t dom, std::size_t node) const
+  {
+    return domTree.isDominator(bbs[dom], bbs[node]);
+  }
+
+  ljit::graph::DominatorTree<ljit::BasicBlockGraph> domTree;
 };
 
 TEST_F(DomTreeTest, simplest)
@@ -19,12 +32,12 @@ TEST_F(DomTreeTest, simplest)
   makeEdge(0, 1);
 
   // Act
-  auto res = ljit::graph::buildDomTree(func->makeBBGraph());
+  buildDomTree();
   // Assert
-  EXPECT_TRUE(res.isDominator(bbs[0], bbs[1]));
-  EXPECT_TRUE(res.isDominator(bbs[1], bbs[1]));
-  EXPECT_TRUE(res.isDominator(bbs[0], bbs[0]));
-  EXPECT_FALSE(res.isDominator(bbs[1], bbs[0]));
+  EXPECT_TRUE(isDom(0, 1));
+  EXPECT_TRUE(isDom(1, 1));
+  EXPECT_TRUE(isDom(0, 0));
+  EXPECT_FALSE(isDom(1, 0));
 }
 
 TEST_F(DomTreeTest, example1)
@@ -33,13 +46,10 @@ TEST_F(DomTreeTest, example1)
   buildExample1();
 
   // Act
-  auto domTree = ljit::graph::buildDomTree(func->makeBBGraph());
+  buildDomTree();
   domTree.dump(std::clog);
 
   // Assert
-  auto &&isDom = [&](std::size_t dom, std::size_t node) {
-    return domTree.isDominator(bbs[dom], bbs[node]);
-  };
   for (const auto &bb : bbs)
     ASSERT_TRUE(domTree.isDominator(bb, bb));
 
@@ -57,11 +67,9 @@ TEST_F(DomTreeTest, example2)
   buildExample2();
 
   // Act
-  auto domTree = ljit::graph::buildDomTree(func->makeBBGraph());
+  buildDomTree();
+
   // Assert
-  auto &&isDom = [&](std::size_t dom, std::size_t node) {
-    return domTree.isDominator(bbs[dom], bbs[node]);
-  };
   EXPECT_TRUE(isDom(0, 1));
 
   EXPECT_TRUE(isDom(1, 9));
@@ -76,4 +84,26 @@ TEST_F(DomTreeTest, example2)
   EXPECT_TRUE(isDom(6, 8));
 
   EXPECT_TRUE(isDom(8, 10));
+}
+
+TEST_F(DomTreeTest, example3)
+{
+  // Assign
+  buildExample3();
+
+  // Act
+  buildDomTree();
+
+  // Assert
+  EXPECT_TRUE(isDom(0, 1));
+
+  EXPECT_TRUE(isDom(1, 2));
+  EXPECT_TRUE(isDom(1, 4));
+  EXPECT_TRUE(isDom(1, 3));
+  EXPECT_TRUE(isDom(1, 6));
+  EXPECT_TRUE(isDom(1, 8));
+
+  EXPECT_TRUE(isDom(4, 5));
+
+  EXPECT_TRUE(isDom(5, 7));
 }
