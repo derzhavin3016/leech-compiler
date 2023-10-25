@@ -30,62 +30,19 @@ TEST_F(DomTreeTest, simplest)
 TEST_F(DomTreeTest, example1)
 {
   // Assign
-  constexpr std::size_t kSize = 7;
-  genBBs(kSize);
-
-  /* Example 1
-   *
-   *             +---+
-   *             | 0 |
-   *             +---+
-   *               |
-   *               |
-   *               v
-   *   +---+     +---+
-   *   | 2 | <-- | 1 |
-   *   +---+     +---+
-   *     |         |
-   *     |         |
-   *     |         v
-   *     |       +---+     +---+
-   *     |       | 5 | --> | 6 |
-   *     |       +---+     +---+
-   *     |         |         |
-   *     |         |         |
-   *     |         v         |
-   *     |       +---+       |
-   *     |       | 4 |       |
-   *     |       +---+       |
-   *     |         |         |
-   *     |         |         |
-   *     |         v         |
-   *     |       +---+       |
-   *     +-----> | 3 | <-----+
-   *             +---+
-   **/
-  makeEdge(0, 1);
-
-  makeEdge(1, 2);
-  makeEdge(1, 5);
-
-  makeEdge(2, 3);
-
-  makeEdge(5, 4);
-  makeEdge(5, 6);
-
-  makeEdge(4, 3);
-
-  makeEdge(6, 3);
+  buildExample1();
 
   // Act
   auto domTree = ljit::graph::buildDomTree(func->makeBBGraph());
   domTree.dump(std::clog);
+
   // Assert
   auto &&isDom = [&](std::size_t dom, std::size_t node) {
     return domTree.isDominator(bbs[dom], bbs[node]);
   };
   for (const auto &bb : bbs)
     ASSERT_TRUE(domTree.isDominator(bb, bb));
+
   EXPECT_TRUE(isDom(0, 1));
   EXPECT_TRUE(isDom(1, 2));
   EXPECT_TRUE(isDom(1, 5));
@@ -97,93 +54,7 @@ TEST_F(DomTreeTest, example1)
 TEST_F(DomTreeTest, example2)
 {
   // Assign
-  constexpr std::size_t kSize = 11;
-  genBBs(kSize);
-
-  /*
-   *
-   *            +----+
-   *            | 0  |
-   *            +----+
-   *              |
-   *              |
-   *              v
-   *            +----+
-   *    +-----> | 1  | -+
-   *    |       +----+  |
-   *    |         |     |
-   *    |         |     |
-   *    |         v     |
-   *    |       +----+  |
-   *    |       | 9  |  |
-   *    |       +----+  |
-   *    |         |     |
-   *    |         |     |
-   *    |         v     |
-   *    |       +----+  |
-   *    |    +> | 2  | <+
-   *    |    |  +----+
-   *    |    |    |
-   *    |    |    |
-   *    |    |    v
-   *    |    |  +----+
-   *    |    +- | 3  |
-   *    |       +----+
-   *    |         |
-   *    |         |
-   *    |         v
-   *    |       +----+
-   *    |       | 4  | <+
-   *    |       +----+  |
-   *    |         |     |
-   *    |         |     |
-   *    |         v     |
-   *    |       +----+  |
-   *    |       | 5  | -+
-   *    |       +----+
-   *    |         |
-   *    |         |
-   *    |         v
-   *  +---+     +----+
-   *  | 7 | <-- | 6  |
-   *  +---+     +----+
-   *              |
-   *              |
-   *              v
-   *            +----+
-   *            | 8  |
-   *            +----+
-   *              |
-   *              |
-   *              v
-   *            +----+
-   *            | 10 |
-   *            +----+
-   */
-
-  makeEdge(0, 1);
-
-  makeEdge(1, 9);
-  makeEdge(1, 2);
-
-  makeEdge(2, 3);
-
-  makeEdge(3, 2);
-  makeEdge(3, 4);
-
-  makeEdge(4, 5);
-
-  makeEdge(5, 4);
-  makeEdge(5, 6);
-
-  makeEdge(6, 7);
-  makeEdge(6, 8);
-
-  makeEdge(7, 1);
-
-  makeEdge(8, 10);
-
-  makeEdge(9, 2);
+  buildExample2();
 
   // Act
   auto domTree = ljit::graph::buildDomTree(func->makeBBGraph());
