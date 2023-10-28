@@ -12,6 +12,7 @@
 #include <iostream>
 #include <iterator>
 #include <ostream>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -115,7 +116,7 @@ private:
     return detail::getNodeId<GraphTy>(node);
   }
 
-  void dump(const char *func, std::ostream &stream = std::cerr) const
+  void dump(std::string_view func, std::ostream &stream = std::cerr) const
   {
     stream << func << '\n';
 
