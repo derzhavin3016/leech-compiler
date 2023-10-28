@@ -256,7 +256,7 @@ TEST_F(DFSTest, cycle)
               /     \
             bb1  --> bb2
            /  \ /    |
-         bb3  bb4  bb5
+         bb3  bb4  <- bb5
   But the RPO will be still 0 1 3 4 2 5
   */
   const auto answer = makeRPOAnswer({0, 1, 3, 4, 2, 5});
@@ -269,8 +269,9 @@ TEST_F(DFSTest, cycle)
 
   makeEdge(2, 5);
 
-  // Loop edge
+  // Loop edges
   makeEdge(4, 2);
+  makeEdge(5, 4);
 
   const auto res = getRPOIdx();
 
