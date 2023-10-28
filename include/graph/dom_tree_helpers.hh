@@ -92,6 +92,7 @@ public:
     m_map.push_back(std::forward<T>(val));
   }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LJIT_GEN_TRANSP_METHOD(name)                                           \
   [[nodiscard]] auto name()                                                    \
   {                                                                            \
