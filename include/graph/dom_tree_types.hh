@@ -6,10 +6,6 @@
 
 namespace ljit::graph
 {
-template <class NodePtr>
-using IdToNodeMap = std::vector<NodePtr>;
-using IdToIdMap = std::vector<std::size_t>;
-
 template <class NodePtrTy>
 class DomTreeNode
 {

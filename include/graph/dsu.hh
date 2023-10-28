@@ -3,23 +3,20 @@
 
 #include "common/common.hh"
 
-#include "dom_tree_types.hh"
+#include "graph/dom_tree_helpers.hh"
 #include "graph_traits.hh"
 
-namespace ljit::graph
+namespace ljit::graph::detail
 {
 template <class GraphTy>
-class DSU final
+class [[nodiscard]] DSU final
 {
 public:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
 
-  explicit DSU(const IdToIdMap &sdoms, const IdToIdMap &rev)
-    : m_sdoms(sdoms),
-      m_rev(rev),
-      m_parents(sdoms.size()),
-      m_labels(sdoms.size())
+  explicit DSU(const DFSTimeToTimeMap &sdoms, const IdToDSFMap &rev)
+    : m_sdoms(sdoms), m_rev(rev)
   {}
 
   LJIT_NO_COPY_SEMANTICS(DSU);
@@ -71,38 +68,43 @@ public:
   }
 
 private:
-  [[nodiscard]] IdToIdMap::value_type getSdomId(NodePtrTy node) const
+  [[nodiscard]] static auto getNodeId(NodePtrTy node)
   {
-    return m_sdoms[m_rev[Traits::id(node)]];
+    return detail::getNodeId<GraphTy>(node);
+  }
+
+  [[nodiscard]] auto getSdomId(NodePtrTy node) const
+  {
+    return m_sdoms[m_rev.at(getNodeId(node))];
   }
 
   [[nodiscard]] auto &accessParent(NodePtrTy node) const
   {
-    return m_parents[Traits::id(node)];
+    return m_parents.at(getNodeId(node));
   }
   [[nodiscard]] auto &accessParent(NodePtrTy node)
   {
-    return m_parents[Traits::id(node)];
+    return m_parents[getNodeId(node)];
   }
 
   [[nodiscard]] auto &accessLabel(NodePtrTy node) const
   {
-    return m_labels[Traits::id(node)];
+    return m_labels.at(getNodeId(node));
   }
   [[nodiscard]] auto &accessLabel(NodePtrTy node)
   {
-    return m_labels[Traits::id(node)];
+    return m_labels[getNodeId(node)];
   }
 
-  const IdToIdMap &m_sdoms;
-  const IdToIdMap &m_rev;
+  const DFSTimeToTimeMap &m_sdoms;
+  const IdToDSFMap &m_rev;
 
   // parent of i’th node in the forest maintained during step 2 of the algorithm
-  IdToNodeMap<NodePtrTy> m_parents;
+  FromIdMap<NodePtrTy> m_parents;
   // At any point of time, label[i] stores the vertex v with minimum sdom, lying
   // on path from i to the root of the (dsu) tree in which node i lies
-  IdToNodeMap<NodePtrTy> m_labels;
+  FromIdMap<NodePtrTy> m_labels;
 };
-} // namespace ljit::graph
+} // namespace ljit::graph::detail
 
 #endif /* LEECH_JIT_INCLUDE_GRAPH_DSU_HH_INCLUDED */

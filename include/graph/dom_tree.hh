@@ -4,12 +4,14 @@
 #include "common/common.hh"
 #include "dfs.hh"
 
+#include "dom_tree_helpers.hh"
 #include "dom_tree_types.hh"
 #include "graph/dsu.hh"
 #include "graph/graph_traits.hh"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
+#include <ostream>
 #include <unordered_map>
 #include <vector>
 
@@ -27,7 +29,7 @@ public:
   {
     if (node == dom)
       return true; // Every node dominates itself
-    const auto domId = Traits::id(dom);
+    const auto domId = detail::getNodeId<GraphTy>(dom);
     const auto found = m_tree.find(domId);
     if (found == m_tree.end())
       return false;
@@ -52,7 +54,7 @@ private:
   explicit DominatorTree(std::size_t sz) : m_tree(sz)
   {}
 
-  std::unordered_map<std::size_t, DomTreeNode<NodePtrTy>> m_tree;
+  std::unordered_map<detail::NodeIdTy, DomTreeNode<NodePtrTy>> m_tree;
 };
 
 template <class GraphTy>
@@ -68,11 +70,8 @@ private:
   ~DomTreeBuilder() = default;
 
   explicit DomTreeBuilder(const GraphTy &graph)
-    : m_revIdMap(Traits::size(graph)),
-      m_dfsParents(Traits::size(graph)),
-      m_sdoms(Traits::size(graph)),
+    : m_sdoms(Traits::size(graph)),
       m_idoms(Traits::size(graph)),
-      m_sdommed(Traits::size(graph)),
       m_dsu(m_sdoms, m_revIdMap),
       m_domTree(Traits::size(graph))
   {
@@ -95,67 +94,64 @@ public:
 
 private:
   // mapping of i’th node to its new index, equal to the arrival time of node in
-  // dfs tree
-  std::vector<NodePtrTy> m_dfsTimes;
+  detail::FromDFSTimeMap<NodePtrTy> m_dfsTimes;
   // mapping of node id to DFS time
-  IdToIdMap m_revIdMap;
+  detail::IdToDSFMap m_revIdMap;
   // parent of node i in dfs tree
-  IdToNodeMap<NodePtrTy> m_dfsParents;
+  detail::FromIdMap<NodePtrTy> m_dfsParents;
   // label of semi-dominator of the i’th node
-  IdToIdMap m_sdoms;
+  detail::DFSTimeToTimeMap m_sdoms;
   // label of immediate-dominator of the i’th node
-  IdToIdMap m_idoms;
+  detail::DFSTimeToTimeMap m_idoms;
   // For a vertex i, it stores a list of vertices for which i is the
   // semi-dominator
-  std::vector<IdToNodeMap<NodePtrTy>> m_sdommed;
+  detail::FromIdMap<std::vector<NodePtrTy>> m_sdommed;
 
-  DSU<GraphTy> m_dsu;
+  detail::DSU<GraphTy> m_dsu;
   DominatorTree<GraphTy> m_domTree;
 
-  template <class Cont, class OutIt>
-  static void cpy(Cont cont, OutIt it)
+  [[nodiscard]] static auto getNodeId(NodePtrTy node)
   {
-    std::copy(std::begin(cont), std::end(cont), it);
+    return detail::getNodeId<GraphTy>(node);
   }
-#define DUMP() dump(__PRETTY_FUNCTION__)
 
-  void dump(const char *func) const
+  void dump(const char *func, std::ostream &stream = std::cerr) const
   {
-    auto &stream = std::cerr;
-    stream << func << std::endl;
-    std::ostream_iterator<std::size_t> sz{stream, " "};
-    std::ostream_iterator<NodePtrTy> nd{stream, " "};
-#define PRINT_M(member, where)                                                 \
-  stream << #member << std::endl;                                              \
-  cpy(member, where);                                                          \
-  stream << std::endl;
+    stream << func << '\n';
 
-    PRINT_M(m_dfsTimes, nd);
-    PRINT_M(m_dfsParents, nd);
-    stream << "revIdmap\nnodeId: ";
-    for (std::size_t i = 0; i < m_revIdMap.size(); ++i)
-      stream << i << " ";
-    stream << "\ndfsTme: ";
-    for (auto el : m_revIdMap)
-      stream << el << " ";
-    stream << std::endl;
+    // Dump dfsTimes
+    stream << "DFSTimes:\n";
+    m_dfsTimes.dump(stream);
 
-    PRINT_M(m_sdoms, sz);
-    PRINT_M(m_idoms, sz);
-    for (std::size_t i = 0; i < m_sdommed.size(); ++i)
+    // Dump revIdmap
+    stream << "revIdmap:\n";
+    stream << "nodeId    dfsTime\n";
+    stream << m_revIdMap;
+    stream << '\n';
+
+    stream << "Sdoms:\n";
+    m_sdoms.dump(stream);
+
+    stream << "Idoms:\n";
+    m_idoms.dump(stream);
+
+    stream << "Sdommed:\n";
+    for (auto &&[nodeId, vec] : m_sdommed)
     {
-      PRINT_M(m_sdommed[i], nd);
+      stream << nodeId << ":\n";
+      std::copy(vec.begin(), vec.end(),
+                std::ostream_iterator<NodePtrTy>{stream, "\n"});
     }
   }
   void doDFS(const GraphTy &graph)
   {
     depthFirstSearch(
       graph, [this, prev = Traits::entryPoint(graph)](NodePtrTy node) mutable {
-        const auto dfsTime = m_dfsTimes.size();
+        const auto dfsTime = detail::toDFSTime(m_dfsTimes.size());
 
         m_dfsTimes.push_back(node);
 
-        const auto nodeId = Traits::id(node);
+        const auto nodeId = getNodeId(node);
         m_revIdMap[nodeId] = dfsTime;
         m_sdoms[dfsTime] = dfsTime;
         m_idoms[dfsTime] = dfsTime;
@@ -166,36 +162,33 @@ private:
         m_dfsParents[nodeId] = prev;
         prev = node;
       });
-    DUMP();
   }
-
-#define P(val) std::cerr << #val << " is " << (val) << std::endl
 
   void calcSdoms()
   {
     std::for_each(
       m_dfsTimes.rbegin(), m_dfsTimes.rend(), [this](const auto node) {
-        const auto nodeId = Traits::id(node);
+        const auto nodeId = getNodeId(node);
         const auto dfsTime = m_revIdMap[nodeId];
         auto &sdom = m_sdoms[dfsTime];
-        std::for_each(
-          Traits::predBegin(node), Traits::predEnd(node), [&, this](auto pred) {
-            const auto tm = m_revIdMap[Traits::id(m_dsu.find(pred))];
-            sdom = std::min(sdom, m_sdoms[tm]);
-          });
+        std::for_each(Traits::predBegin(node), Traits::predEnd(node),
+                      [&, this](auto pred) {
+                        const auto tm = m_revIdMap[getNodeId(m_dsu.find(pred))];
+                        sdom = std::min(sdom, m_sdoms[tm]);
+                      });
 
         const bool notFirst = node != m_dfsTimes.front();
 
         if (notFirst)
-          m_sdommed[Traits::id(m_dfsTimes[sdom])].push_back(node);
+          m_sdommed[getNodeId(m_dfsTimes[sdom])].push_back(node);
 
         for (const auto &dominatee : m_sdommed[nodeId])
         {
           const auto minSdom = m_dsu.find(dominatee);
-          const auto dominateeId = Traits::id(dominatee);
+          const auto dominateeId = getNodeId(dominatee);
           const auto dominateeTime = m_revIdMap[dominateeId];
 
-          const auto minSdomId = Traits::id(minSdom);
+          const auto minSdomId = getNodeId(minSdom);
           const auto minSdomTime = m_revIdMap[minSdomId];
           const auto dominateeSdomTime = m_sdoms[dominateeTime];
 
@@ -213,8 +206,8 @@ private:
   {
     std::for_each(std::next(m_dfsTimes.begin()), m_dfsTimes.end(),
                   [this, tm = std::size_t{1}](const auto node) mutable {
-                    const auto nodeId = Traits::id(node);
-                    const auto nodeTime = tm++;
+                    const auto nodeId = getNodeId(node);
+                    const auto nodeTime = detail::toDFSTime(tm++);
                     auto &nodeIdomTime = m_idoms[nodeTime];
 
                     if (nodeIdomTime != m_sdoms[nodeTime])
@@ -223,9 +216,8 @@ private:
                     const auto idomNode = m_dfsTimes[nodeIdomTime];
 
                     m_domTree.m_tree[nodeId].setIDom(idomNode);
-                    m_domTree.m_tree[Traits::id(idomNode)].addDommed(node);
+                    m_domTree.m_tree[getNodeId(idomNode)].addDommed(node);
                   });
-    DUMP();
   }
 };
 
