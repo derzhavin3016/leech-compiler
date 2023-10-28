@@ -165,60 +165,79 @@ private:
       });
   }
 
+  [[nodiscard]] auto findMinSdom(NodePtrTy node)
+  {
+    const auto dfsTime = m_revIdMap[getNodeId(node)];
+    auto &sdom = m_sdoms[dfsTime];
+    std::for_each(Traits::predBegin(node), Traits::predEnd(node),
+                  [&, this](auto pred) {
+                    const auto tm = m_revIdMap[getNodeId(m_dsu.find(pred))];
+                    sdom = std::min(sdom, m_sdoms[tm]);
+                  });
+
+    return sdom;
+  }
+
+  void fillIdoms(detail::NodeIdTy nodeId)
+  {
+    for (const auto &dominatee : m_sdommed[nodeId])
+    {
+      const auto minSdom = m_dsu.find(dominatee);
+      const auto dominateeId = getNodeId(dominatee);
+      const auto dominateeTime = m_revIdMap[dominateeId];
+
+      const auto minSdomId = getNodeId(minSdom);
+      const auto minSdomTime = m_revIdMap[minSdomId];
+      const auto dominateeSdomTime = m_sdoms[dominateeTime];
+
+      m_idoms[dominateeTime] = (dominateeSdomTime == m_sdoms[minSdomTime])
+                                 ? dominateeSdomTime
+                                 : minSdomTime;
+    }
+  }
+
   void calcSdoms()
   {
-    std::for_each(
-      m_dfsTimes.rbegin(), m_dfsTimes.rend(), [this](const auto node) {
-        const auto nodeId = getNodeId(node);
-        const auto dfsTime = m_revIdMap[nodeId];
-        auto &sdom = m_sdoms[dfsTime];
-        std::for_each(Traits::predBegin(node), Traits::predEnd(node),
-                      [&, this](auto pred) {
-                        const auto tm = m_revIdMap[getNodeId(m_dsu.find(pred))];
-                        sdom = std::min(sdom, m_sdoms[tm]);
-                      });
+    const auto rend = m_dfsTimes.rend();
+    for (auto nodeIt = m_dfsTimes.rbegin(); nodeIt != rend; ++nodeIt)
+    {
+      const auto node = *nodeIt;
 
-        const bool notFirst = node != m_dfsTimes.front();
+      const auto nodeId = getNodeId(node);
+      const auto sdom = findMinSdom(node);
 
-        if (notFirst)
-          m_sdommed[getNodeId(m_dfsTimes[sdom])].push_back(node);
+      const bool notFirst = node != m_dfsTimes.front();
+      if (notFirst)
+        m_sdommed[getNodeId(m_dfsTimes[sdom])].push_back(node);
 
-        for (const auto &dominatee : m_sdommed[nodeId])
-        {
-          const auto minSdom = m_dsu.find(dominatee);
-          const auto dominateeId = getNodeId(dominatee);
-          const auto dominateeTime = m_revIdMap[dominateeId];
+      fillIdoms(nodeId);
 
-          const auto minSdomId = getNodeId(minSdom);
-          const auto minSdomTime = m_revIdMap[minSdomId];
-          const auto dominateeSdomTime = m_sdoms[dominateeTime];
-
-          m_idoms[dominateeTime] = (dominateeSdomTime == m_sdoms[minSdomTime])
-                                     ? dominateeSdomTime
-                                     : minSdomTime;
-        }
-
-        if (notFirst)
-          m_dsu.unite(node, m_dfsParents[nodeId]);
-      });
+      if (notFirst)
+        m_dsu.unite(node, m_dfsParents[nodeId]);
+    }
   }
 
   void calcIdoms()
   {
-    std::for_each(std::next(m_dfsTimes.begin()), m_dfsTimes.end(),
-                  [this, tm = std::size_t{1}](const auto node) mutable {
-                    const auto nodeId = getNodeId(node);
-                    const auto nodeTime = detail::toDFSTime(tm++);
-                    auto &nodeIdomTime = m_idoms[nodeTime];
+    const auto end = m_dfsTimes.end();
+    for (auto nodeIt = std::next(m_dfsTimes.begin()); nodeIt != end; ++nodeIt)
+    {
+      const auto node = *nodeIt;
+      const auto tm =
+        static_cast<std::size_t>(std::distance(m_dfsTimes.begin(), nodeIt));
 
-                    if (nodeIdomTime != m_sdoms[nodeTime])
-                      nodeIdomTime = m_idoms[nodeIdomTime];
+      const auto nodeId = getNodeId(node);
+      const auto nodeTime = detail::toDFSTime(tm);
+      auto &nodeIdomTime = m_idoms[nodeTime];
 
-                    const auto idomNode = m_dfsTimes[nodeIdomTime];
+      if (nodeIdomTime != m_sdoms[nodeTime])
+        nodeIdomTime = m_idoms[nodeIdomTime];
 
-                    m_domTree.m_tree[nodeId].setIDom(idomNode);
-                    m_domTree.m_tree[getNodeId(idomNode)].addDommed(node);
-                  });
+      const auto idomNode = m_dfsTimes[nodeIdomTime];
+
+      m_domTree.m_tree[nodeId].setIDom(idomNode);
+      m_domTree.m_tree[getNodeId(idomNode)].addDommed(node);
+    }
   }
 };
 

@@ -95,8 +95,8 @@ public:
   void print(std::ostream &ost) const
   {
     ost << '%' << m_id << ":\n";
-    std::for_each(m_instructions.begin(), m_instructions.end(),
-                  [&ost](const auto &inst) { inst.print(ost); });
+    for (const auto &inst : m_instructions)
+      inst.print(ost);
   }
 
   void linkSucc(BasicBlock *succ)
