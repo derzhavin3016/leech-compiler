@@ -18,10 +18,10 @@ class DomTreeNode
 
 public:
   DomTreeNode() = default;
-  explicit DomTreeNode(NodePtrTy idom) : m_idom(idom)
+  explicit DomTreeNode(NodePtrTy idom) : DomTreeNode(idom)
   {}
   DomTreeNode(NodePtrTy idom, const std::vector<NodePtrTy> &idommed)
-    : DomTreeNode(idom), m_idommed(idommed)
+    : m_idom(idom), m_idommed(idommed)
   {}
 
   void setIDom(NodePtrTy idom) noexcept
