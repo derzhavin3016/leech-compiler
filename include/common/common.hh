@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_COMMON_COMMON_HH_INCLUDED
 
 #include <cstdio>
+#include <cstdlib> // IWYU pragma: keep (for std::abort)
 #include <type_traits>
 
 #define LJIT_COPY_SEMANTICS(CLS_NAME, EQ)                                      \
@@ -30,7 +31,8 @@
 #define LJIT_UNLIKELY(cond) (__builtin_expect((cond), 0))
 
 #define LJIT_ASSERT_MSG(cond, ...)                                             \
-  [&, func_name = static_cast<const char *>(__PRETTY_FUNCTION__)] {            \
+  do                                                                           \
+  {                                                                            \
     if LJIT_UNLIKELY (!(cond))                                                 \
     {                                                                          \
       LJIT_PRINT_ERR("*** LJIT ASSERTION FAILED ***\n");                       \
@@ -39,11 +41,12 @@
       LJIT_PRINT_ERR("\n");                                                    \
       LJIT_PRINT_ERR("Condition '%s' has evaluated to false\n", #cond);        \
       LJIT_PRINT_ERR("In file %s on line %i in function %s\n", __FILE__,       \
-                     __LINE__, func_name);                                     \
+                     __LINE__,                                                 \
+                     static_cast<const char *>(__PRETTY_FUNCTION__));          \
       LJIT_PRINT_ERR("**************************\n");                          \
       LJIT_ABORT();                                                            \
     }                                                                          \
-  }()
+  } while (false)
 
 #define LJIT_ASSERT(cond) LJIT_ASSERT_MSG(cond, "%s", "")
 

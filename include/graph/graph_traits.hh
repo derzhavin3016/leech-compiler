@@ -1,6 +1,7 @@
 #ifndef LEECH_JIT_INCLUDE_GRAPH_GRAPH_TRAITS_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_GRAPH_GRAPH_TRAITS_HH_INCLUDED
 
+#include <cstddef>
 namespace ljit
 {
 template <class GraphTy>
@@ -9,19 +10,16 @@ struct GraphTraits final
   using node_pointer = typename GraphTy::pointer;
   using node_iterator = typename GraphTy::node_iterator;
 
-  static node_pointer entryPoint(const GraphTy &graph)
-  {
-    return graph.getEntry();
-  }
+  static node_pointer entryPoint(const GraphTy &graph);
+  static std::size_t id(node_pointer ptr);
 
-  static node_iterator succBegin(node_pointer ptr)
-  {
-    return ptr->succBegin();
-  }
-  static node_iterator succEnd(node_pointer ptr)
-  {
-    return ptr->succEnd();
-  }
+  static std::size_t size(const GraphTy &graph);
+
+  static node_iterator succBegin(node_pointer ptr);
+  static node_iterator succEnd(node_pointer ptr);
+
+  static node_iterator predBegin(node_pointer ptr);
+  static node_iterator predEnd(node_pointer ptr);
 };
 } // namespace ljit
 

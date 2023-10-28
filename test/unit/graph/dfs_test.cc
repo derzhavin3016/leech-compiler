@@ -1,16 +1,13 @@
-#include <algorithm>
+#include "graph_test_builder.hh"
+
 #include <cstddef>
-#include <gtest/gtest-death-test.h>
 #include <initializer_list>
 #include <sstream>
 #include <string_view>
 #include <vector>
 
-#include <gtest/gtest.h>
-
 #include "graph/dfs.hh"
 #include "ir/basic_block.hh"
-#include "ir/function.hh"
 
 TEST(DFS, empty)
 {
@@ -34,23 +31,10 @@ TEST(DFS, emptyGraph)
   EXPECT_TRUE(res.empty());
 }
 
-class DFSTest : public ::testing::Test
+class DFSTest : public ljit::testing::GraphTestBuilder
 {
 protected:
   DFSTest() = default;
-
-  void GenBBs(std::size_t size)
-  {
-    bbs.resize(size);
-    std::generate(bbs.begin(), bbs.end(), [this] { return func.appendBB(); });
-  }
-
-  [[nodiscard]] auto toConstBBs() const
-  {
-    std::vector<const ljit::BasicBlock *> cBBs(bbs.size());
-    std::copy(bbs.begin(), bbs.end(), cBBs.begin());
-    return cBBs;
-  }
 
   [[nodiscard]] static auto makeRPOAnswer(
     std::initializer_list<std::size_t> answ)
@@ -58,29 +42,21 @@ protected:
     return std::vector<std::size_t>{answ};
   }
 
-  void makeEdge(std::size_t idPred, std::size_t idSucc)
-  {
-    bbs.at(idPred)->linkSucc(bbs.at(idSucc));
-  }
-
   [[nodiscard]] auto getRPOIdx() const
   {
     std::vector<std::size_t> res;
     res.reserve(bbs.size());
     ljit::graph::depthFirstSearch(
-      func.makeBBGraph(), [&](auto pNode) { res.push_back(pNode->getId()); });
+      func->makeBBGraph(), [&](auto pNode) { res.push_back(pNode->getId()); });
     return res;
   }
-
-  ljit::Function func{};
-  std::vector<ljit::BasicBlock *> bbs{};
 };
 
 TEST_F(DFSTest, simple)
 {
   // Assign
   constexpr std::size_t kSize = 5;
-  GenBBs(kSize);
+  genBBs(kSize);
   // Just a linear bb structure:
   // bb0 -> bb1 -> bb2 -> bb3 -> bb4
   for (std::size_t i = 0; i < bbs.size() - 1; ++i)
@@ -89,7 +65,7 @@ TEST_F(DFSTest, simple)
   auto answer = toConstBBs();
 
   // Act
-  auto vis = ljit::graph::depthFirstSearch(func.makeBBGraph());
+  auto vis = ljit::graph::depthFirstSearch(func->makeBBGraph());
 
   // Assert
   EXPECT_EQ(answer, vis);
@@ -98,7 +74,7 @@ TEST_F(DFSTest, simple)
 TEST_F(DFSTest, tree)
 {
   constexpr std::size_t kSize = 6;
-  GenBBs(kSize);
+  genBBs(kSize);
 
   // Here we just build a simple tree
   /*            bb0
@@ -128,7 +104,7 @@ TEST_F(DFSTest, tree)
 TEST_F(DFSTest, biggerTree)
 {
   constexpr std::size_t kSize = 10;
-  GenBBs(kSize);
+  genBBs(kSize);
 
   // Here we just build a tree
   /*            bb0
@@ -166,7 +142,7 @@ TEST_F(DFSTest, biggerTree)
 TEST_F(DFSTest, biggerNonTree)
 {
   constexpr std::size_t kSize = 10;
-  GenBBs(kSize);
+  genBBs(kSize);
 
   // Here we just build a tree
   /*            bb0
@@ -207,7 +183,7 @@ TEST_F(DFSTest, biggerNonTree)
 TEST_F(DFSTest, biggerNonTreeDot)
 {
   constexpr std::size_t kSize = 10;
-  GenBBs(kSize);
+  genBBs(kSize);
 
   // Here we just build a tree
   /*            bb0
@@ -264,7 +240,7 @@ bb2 -> bb6;
 
   // Act
   std::ostringstream ss;
-  func.makeBBGraph().dumpDot(ss);
+  func->makeBBGraph().dumpDot(ss);
 
   // Assert
   EXPECT_EQ(kAnswer, ss.str());
@@ -272,7 +248,7 @@ bb2 -> bb6;
 
 TEST_F(DFSTest, cycle)
 {
-  GenBBs(6);
+  genBBs(6);
 
   // Here we just build a simple tree
   // BUT WITH A LOOP EDGE!!!

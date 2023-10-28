@@ -35,7 +35,7 @@ public:
   [[nodiscard]] auto makeBBGraph() const noexcept
   {
     LJIT_ASSERT(!m_bbs.empty());
-    return BasicBlockGraph{&m_bbs.front()};
+    return BasicBlockGraph{&m_bbs.front(), m_bbs.size()};
   }
 };
 
