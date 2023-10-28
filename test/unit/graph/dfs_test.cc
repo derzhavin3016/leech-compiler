@@ -37,13 +37,13 @@ class DFSTest : public ljit::testing::GraphTestBuilder
 protected:
   DFSTest() = default;
 
-  [[nodiscard]] static auto makeRPOAnswer(
+  [[nodiscard]] static auto makePreOrderAnswer(
     std::initializer_list<std::size_t> answ)
   {
     return std::vector<std::size_t>{answ};
   }
 
-  [[nodiscard]] auto getRPOIdx() const
+  [[nodiscard]] auto getPreOrderIdx() const
   {
     std::vector<std::size_t> res;
     res.reserve(bbs.size());
@@ -83,9 +83,9 @@ TEST_F(DFSTest, tree)
             bb1    bb2
            /  \     |
          bb3  bb4  bb5
-  So the RPO will be 0 1 3 4 2 5
+  So the PreOrder will be 0 1 3 4 2 5
   */
-  const auto answer = makeRPOAnswer({0, 1, 3, 4, 2, 5});
+  const auto answer = makePreOrderAnswer({0, 1, 3, 4, 2, 5});
 
   makeEdge(0, 1);
   makeEdge(0, 2);
@@ -96,7 +96,7 @@ TEST_F(DFSTest, tree)
   makeEdge(2, 5);
 
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -115,9 +115,9 @@ TEST_F(DFSTest, biggerTree)
          bb3  bb4  bb5  bb6
         /  \    |
       bb7  bb8  bb9
-  So the RPO will be 0 1 3 7 8 4 9 2 5 6
+  So the PreOrder will be 0 1 3 7 8 4 9 2 5 6
   */
-  const auto answer = makeRPOAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
+  const auto answer = makePreOrderAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
 
   makeEdge(0, 1);
   makeEdge(0, 2);
@@ -134,7 +134,7 @@ TEST_F(DFSTest, biggerTree)
   makeEdge(2, 6);
 
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -153,9 +153,9 @@ TEST_F(DFSTest, biggerNonTree)
       --bb3  bb4  bb5  bb6
       |/  \    |  |
       bb7  bb8  bb9
-  So the RPO will be 0 1 3 7 8 4 9 2 5 6
+  So the PreOrder will be 0 1 3 7 8 4 9 2 5 6
   */
-  const auto answer = makeRPOAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
+  const auto answer = makePreOrderAnswer({0, 1, 3, 7, 8, 4, 9, 2, 5, 6});
 
   makeEdge(0, 1);
   makeEdge(0, 2);
@@ -175,7 +175,7 @@ TEST_F(DFSTest, biggerNonTree)
   makeEdge(2, 6);
 
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -194,7 +194,7 @@ TEST_F(DFSTest, biggerNonTreeDot)
       --bb3  bb4  bb5  bb6
       |/  \    |  |
       bb7  bb8  bb9
-  So the RPO will be 0 1 3 7 8 4 9 2 5 6
+  So the PreOrder will be 0 1 3 7 8 4 9 2 5 6
   */
   makeEdge(0, 1);
   makeEdge(0, 2);
@@ -258,9 +258,9 @@ TEST_F(DFSTest, cycle)
             bb1  --> bb2
            /  \ /    |
          bb3  bb4  <- bb5
-  But the RPO will be still 0 1 3 4 2 5
+  But the PreOrder will be still 0 1 3 4 2 5
   */
-  const auto answer = makeRPOAnswer({0, 1, 3, 4, 2, 5});
+  const auto answer = makePreOrderAnswer({0, 1, 3, 4, 2, 5});
 
   makeEdge(0, 1);
   makeEdge(0, 2);
@@ -274,7 +274,7 @@ TEST_F(DFSTest, cycle)
   makeEdge(4, 2);
   makeEdge(5, 4);
 
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -284,9 +284,9 @@ TEST_F(DFSTest, example1)
 {
   // Assign
   buildExample1();
-  const auto answer = makeRPOAnswer({0, 1, 2, 3, 5, 4, 6});
+  const auto answer = makePreOrderAnswer({0, 1, 2, 3, 5, 4, 6});
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -296,9 +296,9 @@ TEST_F(DFSTest, example2)
 {
   // Assign
   buildExample2();
-  const auto answer = makeRPOAnswer({0, 1, 9, 2, 3, 4, 5, 6, 7, 8, 10});
+  const auto answer = makePreOrderAnswer({0, 1, 9, 2, 3, 4, 5, 6, 7, 8, 10});
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
@@ -308,9 +308,9 @@ TEST_F(DFSTest, example3)
 {
   // Assign
   buildExample3();
-  const auto answer = makeRPOAnswer({0, 1, 2, 3, 6, 8, 4, 5, 7});
+  const auto answer = makePreOrderAnswer({0, 1, 2, 3, 6, 8, 4, 5, 7});
   // Act
-  const auto res = getRPOIdx();
+  const auto res = getPreOrderIdx();
 
   // Assert
   EXPECT_EQ(answer, res);
