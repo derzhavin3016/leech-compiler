@@ -1,6 +1,7 @@
 #include "graph_test_builder.hh"
 
 #include <cstddef>
+#include <gtest/gtest.h>
 #include <initializer_list>
 #include <sstream>
 #include <string_view>
@@ -273,6 +274,42 @@ TEST_F(DFSTest, cycle)
   makeEdge(4, 2);
   makeEdge(5, 4);
 
+  const auto res = getRPOIdx();
+
+  // Assert
+  EXPECT_EQ(answer, res);
+}
+
+TEST_F(DFSTest, example1)
+{
+  // Assign
+  buildExample1();
+  const auto answer = makeRPOAnswer({0, 1, 2, 3, 5, 4, 6});
+  // Act
+  const auto res = getRPOIdx();
+
+  // Assert
+  EXPECT_EQ(answer, res);
+}
+
+TEST_F(DFSTest, example2)
+{
+  // Assign
+  buildExample2();
+  const auto answer = makeRPOAnswer({0, 1, 9, 2, 3, 4, 5, 6, 7, 8, 10});
+  // Act
+  const auto res = getRPOIdx();
+
+  // Assert
+  EXPECT_EQ(answer, res);
+}
+
+TEST_F(DFSTest, example3)
+{
+  // Assign
+  buildExample3();
+  const auto answer = makeRPOAnswer({0, 1, 2, 3, 6, 8, 4, 5, 7});
+  // Act
   const auto res = getRPOIdx();
 
   // Assert
