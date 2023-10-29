@@ -146,7 +146,7 @@ private:
   }
   void doDFS(const GraphTy &graph)
   {
-    depthFirstSearch(
+    depthFirstSearchPreOrder(
       graph, [this, prev = Traits::entryPoint(graph)](NodePtrTy node) mutable {
         const auto dfsTime = detail::toDFSTime(m_dfsTimes.size());
 

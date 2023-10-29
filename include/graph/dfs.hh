@@ -8,17 +8,27 @@
 #include <utility>
 #include <vector>
 
+#include "common/common.hh"
 #include "graph_traits.hh"
 
 namespace ljit::graph
 {
 template <class GraphTy>
-struct DefaultDFSVisitor final
+struct DFSVisitor
 {
+  DFSVisitor() = default;
   using NodePtr = typename GraphTraits<GraphTy>::node_pointer;
 
-  void operator()([[maybe_unused]] NodePtr pNode) const noexcept
+  void discoverNode([[maybe_unused]] NodePtr ptr)
   {}
+  void finishNode([[maybe_unused]] NodePtr ptr)
+  {}
+
+  LJIT_DEFAULT_MOVE_SEMANTICS(DFSVisitor);
+  LJIT_DEFAULT_COPY_SEMANTICS(DFSVisitor);
+
+protected:
+  ~DFSVisitor() = default;
 };
 
 template <class GraphTy, class DFSVisitor>
@@ -37,7 +47,7 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
 
   auto &&visitNode = [&](NodePtrTy pNode) {
     visited.insert(pNode);
-    vis(pNode);
+    vis.discoverNode(pNode);
     toVisit.emplace(Traits::succBegin(pNode), pNode);
   };
 
@@ -54,7 +64,10 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
     });
 
     if (unvisNode == succEnd)
+    {
+      vis.finishNode(parent);
       continue;
+    }
 
     toVisit.emplace(std::next(unvisNode), parent);
 
@@ -62,21 +75,68 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
     visitNode(pNode);
   }
 }
-template <class GraphTy, class DFSVisitor, class RPONodeIter>
-void depthFirstSearch(const GraphTy &graph, DFSVisitor vis, RPONodeIter it)
+
+template <class GraphTy, class PreOrderVis>
+void depthFirstSearchPreOrder(const GraphTy &graph, PreOrderVis vis)
 {
-  depthFirstSearch(graph, [&](auto pNode) {
-    *it++ = pNode;
-    vis(pNode);
-  });
+  struct Vis : public DFSVisitor<GraphTy>
+  {
+    explicit Vis(PreOrderVis &vis) : m_vis{vis}
+    {}
+
+    void discoverNode(typename GraphTraits<GraphTy>::node_pointer nodePtr)
+    {
+      m_vis(nodePtr);
+    }
+
+  private:
+    PreOrderVis &m_vis;
+  };
+
+  depthFirstSearch(graph, Vis{vis});
+}
+
+template <class GraphTy, class PostOrderVis>
+void depthFirstSearchPostOrder(const GraphTy &graph, PostOrderVis vis)
+{
+  struct Vis : public DFSVisitor<GraphTy>
+  {
+    explicit Vis(PostOrderVis &vis) : m_vis{vis}
+    {}
+
+    void finishNode(typename GraphTraits<GraphTy>::node_pointer nodePtr)
+    {
+      m_vis(nodePtr);
+    }
+
+  private:
+    PostOrderVis &m_vis;
+  };
+
+  depthFirstSearch(graph, Vis{vis});
 }
 
 template <class GraphTy>
-[[nodiscard]] auto depthFirstSearch(const GraphTy &graph)
+[[nodiscard]] auto depthFirstSearchPreOrder(const GraphTy &graph)
 {
   std::vector<typename GraphTraits<GraphTy>::node_pointer> bbs;
-  depthFirstSearch(graph, DefaultDFSVisitor<GraphTy>{},
-                   std::back_inserter(bbs));
+  depthFirstSearchPreOrder(graph, [&](auto node) { bbs.push_back(node); });
+  return bbs;
+}
+
+template <class GraphTy>
+[[nodiscard]] auto depthFirstSearchPostOrder(const GraphTy &graph)
+{
+  std::vector<typename GraphTraits<GraphTy>::node_pointer> bbs;
+  depthFirstSearchPostOrder(graph, [&](auto node) { bbs.push_back(node); });
+  return bbs;
+}
+
+template <class GraphTy>
+[[nodiscard]] auto depthFirstSearchReversePostOrder(const GraphTy &graph)
+{
+  auto bbs = depthFirstSearchPostOrder(graph);
+  std::reverse(bbs.begin(), bbs.end());
   return bbs;
 }
 } // namespace ljit::graph
