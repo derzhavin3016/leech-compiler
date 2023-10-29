@@ -29,7 +29,7 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
   using NodeIt = typename Traits::node_iterator;
 
   std::unordered_set<NodePtrTy> visited;
-  std::stack<std::pair<NodeIt, NodeIt>> toVisit;
+  std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
 
   const auto entry = Traits::entryPoint(graph);
   if (entry == nullptr)
@@ -38,24 +38,25 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
   auto &&visitNode = [&](NodePtrTy pNode) {
     visited.insert(pNode);
     vis(pNode);
-    toVisit.emplace(Traits::succBegin(pNode), Traits::succEnd(pNode));
+    toVisit.emplace(Traits::succBegin(pNode), pNode);
   };
 
   visitNode(entry);
 
   while (!toVisit.empty())
   {
-    auto [first, last] = toVisit.top();
+    auto [first, parent] = toVisit.top();
     toVisit.pop();
+    const auto succEnd = Traits::succEnd(parent);
 
-    auto unvisNode = std::find_if(first, last, [&visited](auto pNode) {
+    auto unvisNode = std::find_if(first, succEnd, [&visited](auto pNode) {
       return visited.find(pNode) == visited.end();
     });
 
-    if (unvisNode == last)
+    if (unvisNode == succEnd)
       continue;
 
-    toVisit.emplace(unvisNode, last);
+    toVisit.emplace(std::next(unvisNode), parent);
 
     const auto pNode = *unvisNode;
     visitNode(pNode);
