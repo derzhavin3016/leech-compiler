@@ -47,7 +47,6 @@ TEST_F(DomTreeTest, example1)
 
   // Act
   buildDomTree();
-  domTree.dump(std::clog);
 
   // Assert
   for (const auto &bb : bbs)
