@@ -15,8 +15,9 @@ public:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
 
-  explicit DSU(const DFSTimeToTimeMap &sdoms, const IdToDSFMap &rev)
-    : m_sdoms(sdoms), m_rev(rev)
+  explicit DSU(const DFSTimeToTimeMap &sdoms, const IdToDSFMap &rev,
+               const FromDFSTimeMap<NodePtrTy> &dfsTimes)
+    : m_sdoms(sdoms), m_rev(rev), m_parents(dfsTimes), m_labels(dfsTimes)
   {}
 
   LJIT_NO_COPY_SEMANTICS(DSU);
@@ -73,37 +74,42 @@ private:
     return detail::getNodeId<GraphTy>(node);
   }
 
+  [[nodiscard]] auto getNodeTime(NodePtrTy node) const
+  {
+    return m_rev.at(getNodeId(node));
+  }
+
   [[nodiscard]] auto getSdomId(NodePtrTy node) const
   {
-    return m_sdoms[m_rev.at(getNodeId(node))];
+    return m_sdoms[getNodeTime(node)];
   }
 
   [[nodiscard]] auto &accessParent(NodePtrTy node) const
   {
-    return m_parents.at(getNodeId(node));
+    return m_parents.at(getNodeTime(node));
   }
   [[nodiscard]] auto &accessParent(NodePtrTy node)
   {
-    return m_parents[getNodeId(node)];
+    return m_parents[getNodeTime(node)];
   }
 
   [[nodiscard]] auto &accessLabel(NodePtrTy node) const
   {
-    return m_labels.at(getNodeId(node));
+    return m_labels[getNodeTime(node)];
   }
   [[nodiscard]] auto &accessLabel(NodePtrTy node)
   {
-    return m_labels[getNodeId(node)];
+    return m_labels[getNodeTime(node)];
   }
 
   const DFSTimeToTimeMap &m_sdoms;
   const IdToDSFMap &m_rev;
 
   // parent of i’th node in the forest maintained during step 2 of the algorithm
-  FromIdMap<NodePtrTy> m_parents;
+  FromDFSTimeMap<NodePtrTy> m_parents;
   // At any point of time, label[i] stores the vertex v with minimum sdom, lying
   // on path from i to the root of the (dsu) tree in which node i lies
-  FromIdMap<NodePtrTy> m_labels;
+  FromDFSTimeMap<NodePtrTy> m_labels;
 };
 } // namespace ljit::graph::detail
 

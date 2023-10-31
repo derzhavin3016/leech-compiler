@@ -42,8 +42,14 @@ public:
 
   void dump(std::ostream &ost) const
   {
-    for (const auto &[domid, node] : m_tree)
-      node.dump(ost);
+    for (const auto &[domId, node] : m_tree)
+    {
+      ost << "Dominator: " << toUnderlying(domId) << '\n';
+      ost << "Dominatees: ";
+      for (const auto &dominatee : node.getIDommed())
+        ost << Traits::id(dominatee) << ' ';
+      ost << '\n';
+    }
   }
 
   DominatorTree() = default;
@@ -73,7 +79,6 @@ private:
   explicit DomTreeBuilder(const GraphTy &graph)
     : m_sdoms(Traits::size(graph)),
       m_idoms(Traits::size(graph)),
-      m_dsu(m_sdoms, m_revIdMap),
       m_domTree(Traits::size(graph))
   {
     m_dfsTimes.reserve(Traits::size(graph));
@@ -108,7 +113,8 @@ private:
   // semi-dominator
   detail::FromIdMap<std::vector<NodePtrTy>> m_sdommed;
 
-  detail::DSU<GraphTy> m_dsu;
+  using DSUTy = detail::DSU<GraphTy>;
+
   DominatorTree<GraphTy> m_domTree;
 
   [[nodiscard]] static auto getNodeId(NodePtrTy node)
@@ -157,32 +163,29 @@ private:
         m_sdoms[dfsTime] = dfsTime;
         m_idoms[dfsTime] = dfsTime;
 
-        m_dsu.setParent(node, node);
-        m_dsu.setLabel(node, node);
-
         m_dfsParents[nodeId] = prev;
         prev = node;
       });
   }
 
-  [[nodiscard]] auto findMinSdom(NodePtrTy node)
+  [[nodiscard]] auto findMinSdom(NodePtrTy node, DSUTy &dsu)
   {
     const auto dfsTime = m_revIdMap[getNodeId(node)];
     auto &sdom = m_sdoms[dfsTime];
     std::for_each(Traits::predBegin(node), Traits::predEnd(node),
                   [&, this](auto pred) {
-                    const auto tm = m_revIdMap[getNodeId(m_dsu.find(pred))];
+                    const auto tm = m_revIdMap[getNodeId(dsu.find(pred))];
                     sdom = std::min(sdom, m_sdoms[tm]);
                   });
 
     return sdom;
   }
 
-  void fillIdoms(detail::NodeIdTy nodeId)
+  void fillIdoms(detail::NodeIdTy nodeId, DSUTy &dsu)
   {
     for (const auto &dominatee : m_sdommed[nodeId])
     {
-      const auto minSdom = m_dsu.find(dominatee);
+      const auto minSdom = dsu.find(dominatee);
 
       const auto dominateeTime = m_revIdMap[getNodeId(dominatee)];
 
@@ -197,22 +200,24 @@ private:
 
   void calcSdoms()
   {
+    DSUTy dsu{m_sdoms, m_revIdMap, m_dfsTimes};
+
     const auto rend = m_dfsTimes.rend();
     for (auto nodeIt = m_dfsTimes.rbegin(); nodeIt != rend; ++nodeIt)
     {
       const auto node = *nodeIt;
 
       const auto nodeId = getNodeId(node);
-      const auto sdom = findMinSdom(node);
+      const auto sdom = findMinSdom(node, dsu);
 
       const bool notFirst = node != m_dfsTimes.front();
       if (notFirst)
         m_sdommed[getNodeId(m_dfsTimes[sdom])].push_back(node);
 
-      fillIdoms(nodeId);
+      fillIdoms(nodeId, dsu);
 
       if (notFirst)
-        m_dsu.unite(node, m_dfsParents[nodeId]);
+        dsu.unite(node, m_dfsParents[nodeId]);
     }
   }
 

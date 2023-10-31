@@ -1,7 +1,6 @@
 #ifndef LEECH_JIT_INCLUDE_GRAPH_DOM_TREE_TYPES_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_GRAPH_DOM_TREE_TYPES_HH_INCLUDED
 
-#include <ostream>
 #include <vector>
 
 namespace ljit::graph
@@ -38,13 +37,6 @@ public:
   void addDommed(NodePtrTy node)
   {
     m_idommed.push_back(node);
-  }
-
-  void dump(std::ostream &ost) const
-  {
-    ost << "Dominator: " << m_idom << std::endl;
-    for (const auto &dom : m_idommed)
-      ost << "Dominatee: " << dom << std::endl;
   }
 };
 } // namespace ljit::graph
