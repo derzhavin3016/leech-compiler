@@ -52,12 +52,21 @@ TEST_F(DomTreeTest, example1)
   for (const auto &bb : bbs)
     ASSERT_TRUE(domTree.isDominator(bb, bb));
 
+  for (std::size_t i = 1; i < bbs.size(); ++i)
+    ASSERT_TRUE(isDom(0, i));
+
   EXPECT_TRUE(isDom(0, 1));
+  EXPECT_FALSE(isDom(1, 0));
+
   EXPECT_TRUE(isDom(1, 2));
+  EXPECT_FALSE(isDom(2, 1));
+
   EXPECT_TRUE(isDom(1, 5));
   EXPECT_TRUE(isDom(1, 3));
   EXPECT_TRUE(isDom(5, 4));
+  EXPECT_TRUE(isDom(1, 4));
   EXPECT_TRUE(isDom(5, 6));
+  EXPECT_TRUE(isDom(1, 6));
 }
 
 TEST_F(DomTreeTest, example2)
@@ -69,10 +78,20 @@ TEST_F(DomTreeTest, example2)
   buildDomTree();
 
   // Assert
+  for (std::size_t i = 1; i < bbs.size(); ++i)
+    ASSERT_TRUE(isDom(0, i));
+
   EXPECT_TRUE(isDom(0, 1));
 
   EXPECT_TRUE(isDom(1, 9));
   EXPECT_TRUE(isDom(1, 2));
+  EXPECT_TRUE(isDom(1, 3));
+  EXPECT_TRUE(isDom(1, 4));
+  EXPECT_TRUE(isDom(1, 5));
+  EXPECT_TRUE(isDom(1, 6));
+  EXPECT_TRUE(isDom(1, 7));
+  EXPECT_TRUE(isDom(1, 8));
+  EXPECT_TRUE(isDom(1, 10));
 
   EXPECT_TRUE(isDom(2, 3));
   EXPECT_TRUE(isDom(3, 4));
@@ -94,6 +113,8 @@ TEST_F(DomTreeTest, example3)
   buildDomTree();
 
   // Assert
+  for (std::size_t i = 1; i < bbs.size(); ++i)
+    ASSERT_TRUE(isDom(0, i));
   EXPECT_TRUE(isDom(0, 1));
 
   EXPECT_TRUE(isDom(1, 2));
@@ -101,8 +122,11 @@ TEST_F(DomTreeTest, example3)
   EXPECT_TRUE(isDom(1, 3));
   EXPECT_TRUE(isDom(1, 6));
   EXPECT_TRUE(isDom(1, 8));
+  EXPECT_FALSE(isDom(2, 3));
 
   EXPECT_TRUE(isDom(4, 5));
+  EXPECT_FALSE(isDom(4, 3));
 
   EXPECT_TRUE(isDom(5, 7));
+  EXPECT_FALSE(isDom(7, 6));
 }

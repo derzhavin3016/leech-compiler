@@ -12,6 +12,7 @@
 #include <iostream>
 #include <iterator>
 #include <ostream>
+#include <stack>
 #include <string_view>
 #include <unordered_map>
 #include <vector>
@@ -30,8 +31,33 @@ public:
   {
     if (node == dom)
       return true; // Every node dominates itself
-    const auto domId = detail::getNodeId<GraphTy>(dom);
-    const auto found = m_tree.find(domId);
+    std::stack<detail::NodeIdTy> toVisit{};
+    toVisit.push(detail::getNodeId<GraphTy>(dom));
+
+    while (!toVisit.empty())
+    {
+      const auto id = toVisit.top();
+      toVisit.pop();
+
+      const auto found = m_tree.find(id);
+      if (found == m_tree.end())
+        continue;
+
+      for (const auto &dommed : found->second.getIDommed())
+      {
+        if (node == dommed)
+          return true;
+        toVisit.push(detail::getNodeId<GraphTy>(dommed));
+      }
+    }
+
+    return false;
+  }
+
+  [[nodiscard]] bool isIdom(NodePtrTy idom, NodePtrTy node) const
+  {
+    const auto idomId = detail::getNodeId<GraphTy>(idom);
+    const auto found = m_tree.find(idomId);
     if (found == m_tree.end())
       return false;
 
