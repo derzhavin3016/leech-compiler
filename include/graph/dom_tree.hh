@@ -15,6 +15,7 @@
 #include <stack>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace ljit::graph
@@ -66,6 +67,11 @@ public:
     return std::find(dommed.begin(), dommed.end(), node) != dommed.end();
   }
 
+  [[nodiscard]] auto size() const noexcept
+  {
+    return m_tree.size();
+  }
+
   void dump(std::ostream &ost) const
   {
     for (const auto &[domId, node] : m_tree)
@@ -78,15 +84,18 @@ public:
     }
   }
 
+  [[nodiscard]] auto getEntryPoint() const noexcept
+  {
+    return m_entryPoint;
+  }
+
   DominatorTree() = default;
 
 private:
   template <class T>
   friend class DomTreeBuilder;
 
-  explicit DominatorTree(std::size_t sz) : m_tree(sz)
-  {}
-
+  DomTreeNode<NodePtrTy> *m_entryPoint{};
   std::unordered_map<detail::NodeIdTy, DomTreeNode<NodePtrTy>> m_tree;
 };
 
@@ -103,9 +112,7 @@ private:
   ~DomTreeBuilder() = default;
 
   explicit DomTreeBuilder(const GraphTy &graph)
-    : m_sdoms(Traits::size(graph)),
-      m_idoms(Traits::size(graph)),
-      m_domTree(Traits::size(graph))
+    : m_sdoms(Traits::size(graph)), m_idoms(Traits::size(graph))
   {
     m_dfsTimes.reserve(Traits::size(graph));
     doDFS(graph);
@@ -263,9 +270,13 @@ private:
 
       const auto idomNode = m_dfsTimes[nodeIdomTime];
 
-      m_domTree.m_tree[getNodeId(node)].setIDom(idomNode);
-      m_domTree.m_tree[getNodeId(idomNode)].addDommed(node);
+      const auto [it, wasNew] =
+        m_domTree.m_tree.try_emplace(getNodeId(idomNode), idomNode);
+
+      it->second.addDommed(node);
     }
+    // Set entry point for dominator tree
+    m_domTree.m_entryPoint = &m_domTree.m_tree[getNodeId(m_dfsTimes.front())];
   }
 };
 
@@ -276,5 +287,46 @@ template <class GraphTy>
 }
 
 } // namespace ljit::graph
+
+namespace ljit
+{
+template <class GraphTy>
+struct GraphTraits<graph::DominatorTree<GraphTy>>
+{
+  using graph_type = graph::DominatorTree<GraphTy>;
+  using node_type =
+    graph::DomTreeNode<typename GraphTraits<GraphTy>::node_pointer>;
+  using node_pointer = node_type *;
+  using node_iterator =
+    decltype(std::declval<node_type>().getIDommed().begin());
+
+  static node_pointer entryPoint(const graph_type &graph)
+  {
+    return graph.getEntryPoint();
+  }
+  static std::size_t id(node_pointer ptr)
+  {
+    GraphTraits<GraphTy>::id(ptr->getIDom());
+  }
+
+  static std::size_t size(const graph_type &graph)
+  {
+    return graph.size();
+  }
+
+  static node_iterator succBegin(node_pointer ptr)
+  {
+    ptr->getIDommed().begin();
+  }
+  static node_iterator succEnd(node_pointer ptr)
+  {
+    ptr->getIDommed().end();
+  }
+
+  /* These methods are not required, but implementation is complex */
+  static node_iterator predBegin(node_pointer ptr);
+  static node_iterator predEnd(node_pointer ptr);
+};
+} // namespace ljit
 
 #endif /* LEECH_JIT_INCLUDE_GRAPH_DOM_TREE_HH_INCLUDED */
