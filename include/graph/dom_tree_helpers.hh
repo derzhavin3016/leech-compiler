@@ -31,8 +31,7 @@ template <typename E, typename T>
 [[nodiscard]] constexpr auto toEnum(T val)
 {
   static_assert(std::is_enum_v<E>);
-  static_assert(std::is_same_v<std::underlying_type_t<E>,
-                               std::remove_cv_t<std::remove_reference_t<T>>>);
+  static_assert(std::is_same_v<std::underlying_type_t<E>, std::decay_t<T>>);
 
   return static_cast<E>(val);
 }

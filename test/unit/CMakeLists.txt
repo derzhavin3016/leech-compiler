@@ -27,8 +27,7 @@ endforeach()
 message(STATUS "Collected unit tests: ${TESTLIST}")
 
 foreach(TEST ${TESTLIST})
-  target_include_directories(${TEST} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(${TEST} PRIVATE gtest gtest_main)
+  target_link_libraries(${TEST} PRIVATE GTest::gtest_main)
   target_link_libraries(${TEST} PRIVATE ${LIBLIST})
 
   target_compile_features(${TEST} PRIVATE cxx_std_20)
