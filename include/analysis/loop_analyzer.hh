@@ -6,18 +6,16 @@
 namespace ljit
 {
 
-
 template <class GraphTy>
 class LoopAnalyzer final
 {
 public:
   using Traits = GraphTraits<GraphTy>;
-  using NodePtrTy = Traits::node_pointer;
+  using NodePtrTy = typename Traits::node_pointer;
 
   LoopAnalyzer() = default;
 
 private:
-
 };
 } // namespace ljit
 
