@@ -13,11 +13,16 @@ cpmaddpackage(
 list_dirs(UNIT_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 
 set(TESTLIST)
+include(GoogleTest)
 
 macro(ljit_add_utest src)
   set(TEST_NAME "${src}_test")
   add_executable(${TEST_NAME} ${src})
   upd_tar_list(${TEST_NAME} TESTLIST)
+  gtest_discover_tests(
+    ${TEST_NAME}
+    EXTRA_ARGS --gtest_color=yes
+    PROPERTIES LABELS unit)
 endmacro()
 
 foreach(DIR ${UNIT_DIRS})
@@ -32,7 +37,4 @@ foreach(TEST ${TESTLIST})
 
   target_compile_features(${TEST} PRIVATE cxx_std_20)
   target_include_directories(${TEST} PRIVATE ${CMAKE_SOURCE_DIR}/include)
-
-  add_test(NAME ${TEST} COMMAND ${TEST} --gtest_color=yes)
-  set_property(TEST ${TEST} PROPERTY LABELS unit)
 endforeach()
