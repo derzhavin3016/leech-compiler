@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <iterator>
 #include <stack>
-#include <unordered_set>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -24,11 +24,20 @@ struct DFSVisitor
   void finishNode([[maybe_unused]] NodePtr ptr)
   {}
 
+  void backEdge([[maybe_unused]] NodePtr src, [[maybe_unused]] NodePtr tar)
+  {}
+
   LJIT_DEFAULT_MOVE_SEMANTICS(DFSVisitor);
   LJIT_DEFAULT_COPY_SEMANTICS(DFSVisitor);
 
 protected:
   ~DFSVisitor() = default;
+};
+
+enum class DFSColor : bool
+{
+  kGrey,
+  kBlack,
 };
 
 template <class GraphTy, class DFSVisitor>
@@ -38,7 +47,7 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
   using NodePtrTy = typename Traits::node_pointer;
   using NodeIt = typename Traits::node_iterator;
 
-  std::unordered_set<NodePtrTy> visited;
+  std::unordered_map<NodePtrTy, DFSColor> visited;
   std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
 
   const auto entry = Traits::entryPoint(graph);
@@ -46,7 +55,7 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
     return;
 
   auto &&visitNode = [&](NodePtrTy pNode) {
-    visited.insert(pNode);
+    visited[pNode] = DFSColor::kGrey;
     vis.discoverNode(pNode);
     toVisit.emplace(Traits::succBegin(pNode), pNode);
   };
@@ -59,12 +68,23 @@ void depthFirstSearch(const GraphTy &graph, DFSVisitor vis)
     toVisit.pop();
     const auto succEnd = Traits::succEnd(parent);
 
-    auto unvisNode = std::find_if(first, succEnd, [&visited](auto pNode) {
-      return visited.find(pNode) == visited.end();
-    });
+    const auto unvisNode =
+      std::find_if(first, succEnd, [&, &par = parent](auto pNode) {
+        const auto found = visited.find(pNode);
+        if (found == visited.end())
+          return true;
+        if (found->second == DFSColor::kGrey)
+        {
+          // Found grey node => back edge!
+          vis.backEdge(par, found->first);
+        }
+
+        return false;
+      });
 
     if (unvisNode == succEnd)
     {
+      visited[parent] = DFSColor::kBlack;
       vis.finishNode(parent);
       continue;
     }

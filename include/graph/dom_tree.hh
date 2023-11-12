@@ -55,18 +55,6 @@ public:
     return false;
   }
 
-  [[nodiscard]] bool isIdom(NodePtrTy idom, NodePtrTy node) const
-  {
-    const auto idomId = detail::getNodeId<GraphTy>(idom);
-    const auto found = m_tree.find(idomId);
-    if (found == m_tree.end())
-      return false;
-
-    const auto &dommed = found->second.getIDommed();
-
-    return std::find(dommed.begin(), dommed.end(), node) != dommed.end();
-  }
-
   [[nodiscard]] auto size() const noexcept
   {
     return m_tree.size();
@@ -114,7 +102,7 @@ private:
     calcIdoms();
   }
 
-  [[nodiscard]] auto getDomTree() && noexcept
+  [[nodiscard]] auto getDomTree() &&noexcept
   {
     return std::move(m_domTree);
   }
