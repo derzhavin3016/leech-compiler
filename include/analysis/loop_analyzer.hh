@@ -1,11 +1,19 @@
 #ifndef LEECH_JIT_INCLUDE_ANALYSIS_LOOP_ANALYZER_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_ANALYSIS_LOOP_ANALYZER_HH_INCLUDED
 
+#include <algorithm>
+#include <stack>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
+#include "intrusive_list/intrusive_list.hh"
+
+#include "common/common.hh"
 #include "graph/dfs.hh"
 #include "graph/dom_tree.hh"
 #include "graph/graph_traits.hh"
-#include <unordered_map>
-#include <unordered_set>
 
 namespace ljit
 {
@@ -17,65 +25,220 @@ private:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
 
-  class LoopInfo final
+  class LoopInfo;
+  using NodesToLoop = std::unordered_map<NodePtrTy, LoopInfo *>;
+
+  class LoopInfo final : public IListNode
   {
     NodePtrTy m_header{};
     std::unordered_set<NodePtrTy> m_body{};
+    LoopInfo *m_outer = nullptr;
+    std::vector<LoopInfo *> m_inners{};
 
     bool m_reducible = false;
+    bool m_root = false;
+
+    void setOuter(LoopInfo *outer) noexcept
+    {
+      m_outer = outer;
+    }
+
+    friend class LoopAnalyzer;
 
   public:
-    LoopInfo(NodePtrTy header, bool reducible)
-      : m_header(header), m_reducible(reducible)
+    LoopInfo(NodePtrTy header, bool reducible, bool root = false)
+      : m_header(header), m_reducible(reducible), m_root(root)
     {}
+
+    [[nodiscard]] bool reducible() const noexcept
+    {
+      return m_reducible;
+    }
+
+    [[nodiscard]] bool isRoot() const noexcept
+    {
+      return m_root;
+    }
 
     void addNode(NodePtrTy node)
     {
       m_body.insert(node);
     }
 
+    [[nodiscard]] auto getOuterLoop() const noexcept
+    {
+      return m_outer;
+    }
+
+    void addInnerLoop(LoopInfo *inner)
+    {
+      m_inners.push_back(inner);
+      inner->setOuter(this);
+    }
+
     [[nodiscard]] auto contains(NodePtrTy node) const
     {
       return node == m_header || m_body.find(node) != m_body.end();
     }
-  };
 
-public:
-  explicit LoopAnalyzer(const GraphTy &graph)
-    : m_domTree(graph::buildDomTree(graph))
-  {
-    auto &&loopsMap = collectBackEdges(graph);
-  }
-
-private:
-  using LoopsMap = std::unordered_map<NodePtrTy, LoopInfo>;
-  class Visitor final : public graph::DFSVisitor<GraphTy>
-  {
-    LoopsMap &m_info;
-    const LoopAnalyzer &m_analyzer;
-
-  public:
-    Visitor(LoopsMap &info, const LoopAnalyzer &analyzer)
-      : m_info(info), m_analyzer(analyzer)
-    {}
-
-    void backEdge(NodePtrTy src, NodePtrTy tar)
+  private:
+    void populate(NodesToLoop &nodesToLoop)
     {
-      const bool isReducible = m_analyzer.m_domTree.isDominator(tar, src);
-      const auto &itBool = m_info.try_emplace(tar, tar, isReducible);
+      // Associate all sources of back edges w/ this loop
+      for (const auto &backSrc : m_body)
+        nodesToLoop.emplace(backSrc, this);
 
-      itBool.first->second.addNode(src);
+      // If it is irreducible, that's all
+      if (!m_reducible)
+        return;
+
+      using NodeIt = typename Traits::node_iterator;
+      // Fill loop's body
+      std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
+      std::unordered_set<NodePtrTy> visited;
+
+      auto &&vis = [&](const NodePtrTy node) {
+        toVisit.emplace(Traits::predBegin(node), node);
+        visited.insert(node);
+      };
+
+      std::for_each(m_body.cbegin(), m_body.cend(), vis);
+
+      // DFS loop
+      while (!toVisit.empty())
+      {
+        auto [first, parent] = toVisit.top();
+        toVisit.pop();
+
+        const auto predEnd = Traits::predEnd(parent);
+        const auto unvisNode =
+          std::find_if(first, predEnd, [&, this](auto node) {
+            if (node == m_header)
+              return false;
+
+            const auto [it, wasNew] = nodesToLoop.emplace(node, this);
+
+            if (wasNew)
+            {
+              // Add to body
+              addNode(it->first);
+            }
+            else
+            {
+              // Link loops
+              addInnerLoop(it->second);
+            }
+
+            return true;
+          });
+
+        if (unvisNode == predEnd)
+          continue;
+
+        toVisit.emplace(std::next(unvisNode), parent);
+        vis(*unvisNode);
+      }
     }
   };
 
-  [[nodiscard]] LoopsMap collectBackEdges(const GraphTy &graph) const
+  using Nodes = std::vector<NodePtrTy>;
+
+public:
+  LoopAnalyzer() = default;
+
+  explicit LoopAnalyzer(const GraphTy &graph)
   {
-    LoopsMap loops;
-    graph::depthFirstSearch(graph, Visitor{loops, *this});
-    return loops;
+    Nodes nodes;
+    Nodes loopHeadPostOrder;
+
+    m_nodesToLoop = collectBackEdges(graph, loopHeadPostOrder, nodes);
+    std::for_each(loopHeadPostOrder.crbegin(), loopHeadPostOrder.crend(),
+                  [&](const auto node) {
+                    const auto found = m_nodesToLoop.find(node);
+                    LJIT_ASSERT(found != m_nodesToLoop.end());
+
+                    found->second->populate(m_nodesToLoop);
+                  });
+    loopHeadPostOrder.clear();
+
+    auto *const rootLoop =
+      &emplaceBackToList<LoopInfo>(m_loops, nullptr, false, true);
+
+    // Put all free nodes to the root loop
+
+    for (const auto &node : nodes)
+    {
+      const auto [it, wasNew] = m_nodesToLoop.emplace(node, rootLoop);
+      if (wasNew)
+        rootLoop->addNode(it->first);
+    }
+
+    std::for_each(m_loops.begin(), m_loops.end(), [&](auto &loop) {
+      if (&loop != rootLoop && loop.getOuterLoop() == nullptr)
+        loop.setOuter(rootLoop);
+    });
   }
 
-  graph::DominatorTree<GraphTy> m_domTree;
+  [[nodiscard]] const auto *getLoopInfo(NodePtrTy node) const
+  {
+    const auto found = m_nodesToLoop.find(node);
+    LJIT_ASSERT(found != m_nodesToLoop.end());
+    return found->second;
+  }
+
+private:
+  class Visitor final : public graph::DFSVisitor<GraphTy>
+  {
+    NodesToLoop &m_toLoop;
+    LoopAnalyzer &m_analyzer;
+    Nodes &m_postOrder;
+    Nodes &m_allNodes;
+    const graph::DominatorTree<GraphTy> &m_domTree;
+
+  public:
+    Visitor(NodesToLoop &toLoops, LoopAnalyzer &analyzer, Nodes &postOrder,
+            Nodes &allNodes, const graph::DominatorTree<GraphTy> &domTree)
+      : m_toLoop(toLoops),
+        m_analyzer(analyzer),
+        m_postOrder(postOrder),
+        m_allNodes(allNodes),
+        m_domTree(domTree)
+    {}
+
+    void finishNode(NodePtrTy node)
+    {
+      if (m_toLoop.find(node) != m_toLoop.end())
+      {
+        m_postOrder.push_back(node);
+      }
+      else
+      {
+        m_allNodes.push_back(node);
+      }
+    }
+
+    void backEdge(NodePtrTy src, NodePtrTy tar)
+    {
+      const bool isReducible = m_domTree.isDominator(tar, src);
+      auto *const pLoopInfo =
+        &emplaceBackToList<LoopInfo>(m_analyzer.m_loops, tar, isReducible);
+
+      m_toLoop.emplace(tar, pLoopInfo).first->second->addNode(src);
+    }
+  };
+
+  [[nodiscard]] NodesToLoop collectBackEdges(const GraphTy &graph,
+                                             Nodes &postOrder, Nodes &allNodes)
+  {
+    const auto domTree = graph::buildDomTree(graph);
+    NodesToLoop toLoops;
+    graph::depthFirstSearch(
+      graph, Visitor{toLoops, *this, postOrder, allNodes, domTree});
+    return toLoops;
+  }
+
+  NodesToLoop m_nodesToLoop;
+  IList<LoopInfo> m_loops;
 };
 } // namespace ljit
 
