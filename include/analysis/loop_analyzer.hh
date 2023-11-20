@@ -25,9 +25,9 @@ private:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
 
+public:
   class LoopInfo;
   using NodesToLoop = std::unordered_map<NodePtrTy, LoopInfo *>;
-
   class LoopInfo final : public IListNode
   {
     NodePtrTy m_header{};
@@ -70,10 +70,9 @@ private:
       return m_outer;
     }
 
-    void addInnerLoop(LoopInfo *inner)
+    [[nodiscard]] const auto &getInners() const noexcept
     {
-      m_inners.push_back(inner);
-      inner->setOuter(this);
+      return m_inners;
     }
 
     [[nodiscard]] auto contains(NodePtrTy node) const
@@ -82,6 +81,12 @@ private:
     }
 
   private:
+    void addInnerLoop(LoopInfo *inner)
+    {
+      m_inners.push_back(inner);
+      inner->setOuter(this);
+    }
+
     void populate(NodesToLoop &nodesToLoop)
     {
       // Associate all sources of back edges w/ this loop
@@ -107,13 +112,13 @@ private:
       // DFS loop
       while (!toVisit.empty())
       {
-        auto [first, parent] = toVisit.top();
+        auto [first, child] = toVisit.top();
         toVisit.pop();
 
-        const auto predEnd = Traits::predEnd(parent);
+        const auto predEnd = Traits::predEnd(child);
         const auto unvisNode =
           std::find_if(first, predEnd, [&, this](auto node) {
-            if (node == m_header)
+            if (node == m_header || visited.find(node) != visited.end())
               return false;
 
             const auto [it, wasNew] = nodesToLoop.emplace(node, this);
@@ -135,7 +140,7 @@ private:
         if (unvisNode == predEnd)
           continue;
 
-        toVisit.emplace(std::next(unvisNode), parent);
+        toVisit.emplace(std::next(unvisNode), child);
         vis(*unvisNode);
       }
     }
@@ -143,15 +148,14 @@ private:
 
   using Nodes = std::vector<NodePtrTy>;
 
-public:
   LoopAnalyzer() = default;
 
   explicit LoopAnalyzer(const GraphTy &graph)
   {
-    Nodes nodes;
+    Nodes nonHeadNodes;
     Nodes loopHeadPostOrder;
 
-    m_nodesToLoop = collectBackEdges(graph, loopHeadPostOrder, nodes);
+    m_nodesToLoop = collectBackEdges(graph, loopHeadPostOrder, nonHeadNodes);
     std::for_each(loopHeadPostOrder.crbegin(), loopHeadPostOrder.crend(),
                   [&](const auto node) {
                     const auto found = m_nodesToLoop.find(node);
@@ -159,6 +163,10 @@ public:
 
                     found->second->populate(m_nodesToLoop);
                   });
+
+    if (nonHeadNodes.size() + loopHeadPostOrder.size() == m_nodesToLoop.size())
+      return;
+
     loopHeadPostOrder.clear();
 
     auto *const rootLoop =
@@ -166,7 +174,7 @@ public:
 
     // Put all free nodes to the root loop
 
-    for (const auto &node : nodes)
+    for (const auto &node : nonHeadNodes)
     {
       const auto [it, wasNew] = m_nodesToLoop.emplace(node, rootLoop);
       if (wasNew)
@@ -175,7 +183,7 @@ public:
 
     std::for_each(m_loops.begin(), m_loops.end(), [&](auto &loop) {
       if (&loop != rootLoop && loop.getOuterLoop() == nullptr)
-        loop.setOuter(rootLoop);
+        rootLoop->addInnerLoop(&loop);
     });
   }
 

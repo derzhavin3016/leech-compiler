@@ -1,6 +1,10 @@
+#include <algorithm>
+#include <functional>
 #include <gtest/gtest.h>
 
 #include "../graph/graph_test_builder.hh"
+#include <initializer_list>
+#include <unordered_set>
 
 #include "analysis/loop_analyzer.hh"
 #include "ir/basic_block.hh"
@@ -14,8 +18,26 @@ protected:
   {
     loopAnalyzer = decltype(loopAnalyzer){func->makeBBGraph()};
   }
+  using LoopAnalyzer = ljit::LoopAnalyzer<ljit::BasicBlockGraph>;
+  using LoopInfo = typename LoopAnalyzer::LoopInfo;
 
-  ljit::LoopAnalyzer<ljit::BasicBlockGraph> loopAnalyzer;
+  [[nodiscard]] const auto *getLoopInfo(std::size_t bbId) const
+  {
+    return loopAnalyzer.getLoopInfo(bbs.at(bbId));
+  }
+
+  [[nodiscard]] static bool checkInners(const LoopInfo *loop,
+                                        std::vector<const LoopInfo *> inners)
+  {
+    auto innersOrig = loop->getInners();
+    std::sort(innersOrig.begin(), innersOrig.end());
+    std::sort(inners.begin(), inners.end());
+
+    return std::equal(inners.begin(), inners.end(), innersOrig.begin(),
+                      innersOrig.end());
+  }
+
+  LoopAnalyzer loopAnalyzer;
 };
 
 TEST_F(LoopAnalyzerTest, basic)
@@ -28,12 +50,103 @@ TEST_F(LoopAnalyzerTest, basic)
 
   // Act
   buildLoopAnalyzer();
-  const auto *const l1 = loopAnalyzer.getLoopInfo(bbs[0]);
-  const auto *const l2 = loopAnalyzer.getLoopInfo(bbs[1]);
+  const auto *const l1 = getLoopInfo(0);
+  const auto *const l2 = getLoopInfo(1);
   // Assert
   ASSERT_EQ(l1, l2);
   EXPECT_TRUE(l1->isRoot());
   EXPECT_EQ(l1->getOuterLoop(), nullptr);
   EXPECT_TRUE(l1->contains(bbs[0]));
   EXPECT_TRUE(l1->contains(bbs[1]));
+}
+
+TEST_F(LoopAnalyzerTest, simpleLoop)
+{
+  // Assign
+  genBBs(2);
+  // Just 0 <-> 1
+  makeEdge(0, 1);
+  makeEdge(1, 0);
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *l1 = getLoopInfo(0);
+  const auto *l2 = getLoopInfo(1);
+
+  // Assert
+  ASSERT_EQ(l1, l2);
+  EXPECT_FALSE(l1->isRoot());
+  EXPECT_EQ(l1->getOuterLoop(), nullptr);
+  EXPECT_TRUE(l1->reducible());
+  EXPECT_TRUE(l1->contains(bbs[0]));
+  EXPECT_TRUE(l1->contains(bbs[1]));
+  EXPECT_TRUE(l1->getInners().empty());
+}
+
+TEST_F(LoopAnalyzerTest, example1)
+{
+  // Assign
+  buildExample1();
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *const root = getLoopInfo(0);
+
+  // Assert
+  for (std::size_t i = 1; i < bbs.size(); ++i)
+    ASSERT_EQ(root, getLoopInfo(i));
+
+  EXPECT_TRUE(root->isRoot());
+
+  for (const auto &bb : bbs)
+    EXPECT_TRUE(root->contains(bb));
+
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_TRUE(root->getInners().empty());
+}
+
+TEST_F(LoopAnalyzerTest, example2)
+{
+  // Assign
+  buildExample2();
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *root = getLoopInfo(0);
+  const auto *l1 = getLoopInfo(1);
+  const auto *l2 = getLoopInfo(2);
+  const auto *l3 = getLoopInfo(4);
+
+  // Assert
+  ASSERT_EQ((std::unordered_set<decltype(root)>{root, l1, l2, l3}.size()), 4);
+
+  EXPECT_TRUE(root->isRoot());
+  EXPECT_EQ(getLoopInfo(8), root);
+  EXPECT_EQ(getLoopInfo(10), root);
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_EQ(root->getInners().size(), 1);
+  EXPECT_EQ(root->getInners()[0], l1);
+
+  EXPECT_FALSE(l1->isRoot());
+  EXPECT_EQ(getLoopInfo(6), l1);
+  EXPECT_EQ(getLoopInfo(7), l1);
+  EXPECT_EQ(getLoopInfo(9), l1);
+  EXPECT_EQ(l1->getOuterLoop(), root);
+  EXPECT_TRUE(l1->reducible());
+  EXPECT_TRUE(checkInners(l1, {l3, l2}));
+
+  EXPECT_FALSE(l2->isRoot());
+  EXPECT_EQ(getLoopInfo(3), l2);
+  EXPECT_EQ(l2->getOuterLoop(), l1);
+  EXPECT_TRUE(l2->reducible());
+  EXPECT_TRUE(checkInners(l2, {}));
+
+  EXPECT_FALSE(l3->isRoot());
+  return;
+
+  for (const auto &bb : bbs)
+    EXPECT_TRUE(root->contains(bb));
+
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_TRUE(root->getInners().empty());
 }
