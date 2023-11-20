@@ -142,11 +142,8 @@ TEST_F(LoopAnalyzerTest, example2)
   EXPECT_TRUE(checkInners(l2, {}));
 
   EXPECT_FALSE(l3->isRoot());
-  return;
-
-  for (const auto &bb : bbs)
-    EXPECT_TRUE(root->contains(bb));
-
-  EXPECT_EQ(root->getOuterLoop(), nullptr);
-  EXPECT_TRUE(root->getInners().empty());
+  EXPECT_EQ(getLoopInfo(5), l2);
+  EXPECT_EQ(l3->getOuterLoop(), l1);
+  EXPECT_TRUE(l3->reducible());
+  EXPECT_TRUE(checkInners(l3, {}));
 }

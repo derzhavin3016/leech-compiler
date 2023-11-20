@@ -2,6 +2,8 @@
 #define LEECH_JIT_INCLUDE_ANALYSIS_LOOP_ANALYZER_HH_INCLUDED
 
 #include <algorithm>
+#include <fstream>
+#include <iterator>
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
@@ -131,7 +133,9 @@ public:
             else
             {
               // Link loops
-              addInnerLoop(it->second);
+              const auto *inner = it->second;
+              if (inner->getOuterLoop() == nullptr)
+                addInnerLoop(it->second);
             }
 
             return true;
@@ -156,7 +160,10 @@ public:
     Nodes loopHeadPostOrder;
 
     m_nodesToLoop = collectBackEdges(graph, loopHeadPostOrder, nonHeadNodes);
-    std::for_each(loopHeadPostOrder.crbegin(), loopHeadPostOrder.crend(),
+    std::ofstream f{"HAHA.log"};
+    std::transform(loopHeadPostOrder.begin(), loopHeadPostOrder.end(),
+                   std::ostream_iterator<size_t>{f, ",,,\n"}, Traits::id);
+    std::for_each(loopHeadPostOrder.cbegin(), loopHeadPostOrder.cend(),
                   [&](const auto node) {
                     const auto found = m_nodesToLoop.find(node);
                     LJIT_ASSERT(found != m_nodesToLoop.end());
@@ -215,23 +222,24 @@ private:
 
     void finishNode(NodePtrTy node)
     {
-      if (m_toLoop.find(node) != m_toLoop.end())
-      {
-        m_postOrder.push_back(node);
-      }
-      else
-      {
-        m_allNodes.push_back(node);
-      }
+      auto &cont =
+        m_toLoop.find(node) != m_toLoop.end() ? m_postOrder : m_allNodes;
+
+      cont.push_back(node);
     }
 
     void backEdge(NodePtrTy src, NodePtrTy tar)
     {
-      const bool isReducible = m_domTree.isDominator(tar, src);
-      auto *const pLoopInfo =
-        &emplaceBackToList<LoopInfo>(m_analyzer.m_loops, tar, isReducible);
+      auto [it, newLoop] = m_toLoop.emplace(tar, nullptr);
 
-      m_toLoop.emplace(tar, pLoopInfo).first->second->addNode(src);
+      if (newLoop)
+      {
+        const bool isReducible = m_domTree.isDominator(tar, src);
+        it->second =
+          &emplaceBackToList<LoopInfo>(m_analyzer.m_loops, tar, isReducible);
+      }
+
+      it->second->addNode(src);
     }
   };
 
