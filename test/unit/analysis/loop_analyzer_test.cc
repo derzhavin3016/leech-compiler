@@ -234,3 +234,37 @@ TEST_F(LoopAnalyzerTest, example5)
   EXPECT_EQ(loop->getOuterLoop(), root);
   EXPECT_TRUE(checkInners(loop, {}));
 }
+
+TEST_F(LoopAnalyzerTest, example6)
+{
+  // Assign
+  buildExample6();
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *root = getLoopInfo(4);
+  const auto *mainLoop = getLoopInfo(0);
+  const auto *loop = getLoopInfo(1);
+
+  // Assert
+  ASSERT_EQ((std::unordered_set{root, mainLoop, loop}.size()), 3);
+
+  EXPECT_TRUE(root->isRoot());
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_TRUE(checkInners(root, {mainLoop}));
+
+  EXPECT_FALSE(mainLoop->isRoot());
+  EXPECT_TRUE(mainLoop->reducible());
+  EXPECT_EQ(getLoopInfo(7), mainLoop);
+  EXPECT_EQ(mainLoop->getOuterLoop(), root);
+  EXPECT_TRUE(checkInners(mainLoop, {loop}));
+
+  EXPECT_FALSE(loop->isRoot());
+  EXPECT_TRUE(loop->reducible());
+  EXPECT_EQ(getLoopInfo(2), loop);
+  EXPECT_EQ(getLoopInfo(3), loop);
+  EXPECT_EQ(getLoopInfo(5), loop);
+  EXPECT_EQ(getLoopInfo(6), loop);
+  EXPECT_EQ(loop->getOuterLoop(), mainLoop);
+  EXPECT_TRUE(checkInners(loop, {}));
+}
