@@ -156,7 +156,7 @@ public:
                const std::string &graphName = "BBGraph") const
   {
     ost << "digraph " << graphName << "{\n";
-    graph::depthFirstSearchPostOrder(*this, [&](auto *pNode) {
+    graph::depthFirstSearchPreOrder(*this, [&](auto *pNode) {
       auto &&getName = [](auto *node) {
         std::ostringstream ss;
         ss << "bb" << node->getId();
@@ -165,8 +165,8 @@ public:
       auto &&name = getName(pNode);
       ost << name << " [label=" << '"' << pNode->getId() << "\"];\n";
 
-      for (const auto &succ : pNode->getSucc())
-        ost << name << " -> " << getName(succ) << ";\n";
+      for (const auto &pred : pNode->getPred())
+        ost << getName(pred) << " -> " << name << ";\n";
     });
     ost << "}";
   }

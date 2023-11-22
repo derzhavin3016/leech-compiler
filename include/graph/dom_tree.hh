@@ -15,6 +15,7 @@
 #include <stack>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace ljit::graph
@@ -54,16 +55,9 @@ public:
     return false;
   }
 
-  [[nodiscard]] bool isIdom(NodePtrTy idom, NodePtrTy node) const
+  [[nodiscard]] auto size() const noexcept
   {
-    const auto idomId = detail::getNodeId<GraphTy>(idom);
-    const auto found = m_tree.find(idomId);
-    if (found == m_tree.end())
-      return false;
-
-    const auto &dommed = found->second.getIDommed();
-
-    return std::find(dommed.begin(), dommed.end(), node) != dommed.end();
+    return m_tree.size();
   }
 
   void dump(std::ostream &ost) const
@@ -84,9 +78,6 @@ private:
   template <class T>
   friend class DomTreeBuilder;
 
-  explicit DominatorTree(std::size_t sz) : m_tree(sz)
-  {}
-
   std::unordered_map<detail::NodeIdTy, DomTreeNode<NodePtrTy>> m_tree;
 };
 
@@ -103,9 +94,7 @@ private:
   ~DomTreeBuilder() = default;
 
   explicit DomTreeBuilder(const GraphTy &graph)
-    : m_sdoms(Traits::size(graph)),
-      m_idoms(Traits::size(graph)),
-      m_domTree(Traits::size(graph))
+    : m_sdoms(Traits::size(graph)), m_idoms(Traits::size(graph))
   {
     m_dfsTimes.reserve(Traits::size(graph));
     doDFS(graph);
@@ -113,7 +102,7 @@ private:
     calcIdoms();
   }
 
-  [[nodiscard]] auto getDomTree() && noexcept
+  [[nodiscard]] auto getDomTree() &&noexcept
   {
     return std::move(m_domTree);
   }
@@ -263,8 +252,10 @@ private:
 
       const auto idomNode = m_dfsTimes[nodeIdomTime];
 
-      m_domTree.m_tree[getNodeId(node)].setIDom(idomNode);
-      m_domTree.m_tree[getNodeId(idomNode)].addDommed(node);
+      const auto itBool =
+        m_domTree.m_tree.try_emplace(getNodeId(idomNode), idomNode);
+
+      itBool.first->second.addDommed(node);
     }
   }
 };
