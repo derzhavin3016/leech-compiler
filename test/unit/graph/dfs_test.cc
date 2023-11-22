@@ -243,28 +243,28 @@ TEST_F(DFSTest, biggerNonTreeDot)
 
   constexpr std::string_view kAnswer =
     R"(digraph BBGraph{
-bb7 [label="7"];
-bb8 [label="8"];
-bb3 [label="3"];
-bb3 -> bb7;
-bb3 -> bb7;
-bb3 -> bb8;
-bb9 [label="9"];
-bb4 [label="4"];
-bb4 -> bb9;
-bb1 [label="1"];
-bb1 -> bb3;
-bb1 -> bb4;
-bb5 [label="5"];
-bb5 -> bb9;
-bb6 [label="6"];
-bb2 [label="2"];
-bb2 -> bb5;
-bb2 -> bb6;
 bb0 [label="0"];
+bb1 [label="1"];
 bb0 -> bb1;
-bb0 -> bb2;
+bb3 [label="3"];
+bb1 -> bb3;
+bb7 [label="7"];
+bb3 -> bb7;
+bb3 -> bb7;
+bb8 [label="8"];
+bb3 -> bb8;
+bb4 [label="4"];
 bb0 -> bb4;
+bb1 -> bb4;
+bb9 [label="9"];
+bb4 -> bb9;
+bb5 -> bb9;
+bb2 [label="2"];
+bb0 -> bb2;
+bb5 [label="5"];
+bb2 -> bb5;
+bb6 [label="6"];
+bb2 -> bb6;
 })";
 
   // Act
