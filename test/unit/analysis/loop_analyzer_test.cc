@@ -118,14 +118,13 @@ TEST_F(LoopAnalyzerTest, example2)
   const auto *l3 = getLoopInfo(4);
 
   // Assert
-  ASSERT_EQ((std::unordered_set<decltype(root)>{root, l1, l2, l3}.size()), 4);
+  ASSERT_EQ((std::unordered_set{root, l1, l2, l3}.size()), 4);
 
   EXPECT_TRUE(root->isRoot());
   EXPECT_EQ(getLoopInfo(8), root);
   EXPECT_EQ(getLoopInfo(10), root);
   EXPECT_EQ(root->getOuterLoop(), nullptr);
-  EXPECT_EQ(root->getInners().size(), 1);
-  EXPECT_EQ(root->getInners()[0], l1);
+  EXPECT_TRUE(checkInners(root, {l1}));
 
   EXPECT_FALSE(l1->isRoot());
   EXPECT_EQ(getLoopInfo(6), l1);
@@ -146,4 +145,39 @@ TEST_F(LoopAnalyzerTest, example2)
   EXPECT_EQ(l3->getOuterLoop(), l1);
   EXPECT_TRUE(l3->reducible());
   EXPECT_TRUE(checkInners(l3, {}));
+}
+
+TEST_F(LoopAnalyzerTest, example3)
+{
+  // Assign
+  buildExample3();
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *root = getLoopInfo(0);
+  const auto *irrLoop = getLoopInfo(2);
+  const auto *loop = getLoopInfo(1);
+
+  // Assert
+  ASSERT_EQ((std::unordered_set{root, irrLoop, loop}.size()), 3);
+
+  EXPECT_TRUE(root->isRoot());
+  EXPECT_EQ(getLoopInfo(3), root);
+  EXPECT_EQ(getLoopInfo(7), root);
+  EXPECT_EQ(getLoopInfo(8), root);
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_TRUE(checkInners(root, {loop, irrLoop}));
+
+  EXPECT_FALSE(irrLoop->isRoot());
+  EXPECT_FALSE(irrLoop->reducible());
+  EXPECT_EQ(getLoopInfo(6), irrLoop);
+  EXPECT_EQ(irrLoop->getOuterLoop(), root);
+  EXPECT_TRUE(checkInners(irrLoop, {}));
+
+  EXPECT_FALSE(loop->isRoot());
+  EXPECT_TRUE(loop->reducible());
+  EXPECT_EQ(getLoopInfo(4), loop);
+  EXPECT_EQ(getLoopInfo(5), loop);
+  EXPECT_EQ(loop->getOuterLoop(), root);
+  EXPECT_TRUE(checkInners(loop, {}));
 }
