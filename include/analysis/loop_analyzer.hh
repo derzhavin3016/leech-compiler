@@ -57,6 +57,11 @@ public:
       return m_reducible;
     }
 
+    [[nodiscard]] auto getHeader() const noexcept
+    {
+      return m_header;
+    }
+
     [[nodiscard]] bool isRoot() const noexcept
     {
       return m_root;
