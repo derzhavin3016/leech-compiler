@@ -1,10 +1,11 @@
 #include <algorithm>
-#include <functional>
-#include <gtest/gtest.h>
+#include <optional>
+#include <unordered_set>
+
+#include "gtest/gtest.h"
+#include <vector>
 
 #include "../graph/graph_test_builder.hh"
-#include <initializer_list>
-#include <unordered_set>
 
 #include "analysis/loop_analyzer.hh"
 #include "ir/basic_block.hh"
@@ -26,15 +27,73 @@ protected:
     return loopAnalyzer.getLoopInfo(bbs.at(bbId));
   }
 
-  [[nodiscard]] static bool checkInners(const LoopInfo *loop,
+  [[nodiscard]] auto checkHeader(
+    const LoopInfo *loop, std::optional<std::size_t> bbId = std::nullopt) const
+  {
+    const auto *const exp = bbId ? bbs[*bbId] : nullptr;
+    const auto *const got = loop->getHeader();
+    if (got == exp)
+      return testing::AssertionSuccess();
+
+    return testing::AssertionFailure()
+           << "Expected: " << exp << ", got: " << got;
+  }
+
+  [[nodiscard]] auto checkBackEdges(const LoopInfo *loop,
+                                    std::vector<std::size_t> backs)
+  {
+    auto backEdges = loop->getBackEdgesSrc();
+    decltype(backEdges) expectEdges(backs.size());
+
+    std::transform(backs.begin(), backs.end(), expectEdges.begin(),
+                   [&](auto id) { return bbs.at(id); });
+
+    std::sort(expectEdges.begin(), expectEdges.end());
+    std::sort(backEdges.begin(), backEdges.end());
+
+    if (backEdges != expectEdges)
+    {
+      auto os = testing::AssertionFailure();
+      os << "Expected back edges: [ ";
+      for (const auto *p : expectEdges)
+        os << p << " ";
+
+      os << "], got: [ ";
+      for (const auto *p : backEdges)
+        os << p << " ";
+
+      os << "]";
+      return os;
+    }
+
+    return testing::AssertionSuccess();
+  }
+
+  [[nodiscard]] static auto checkInners(const LoopInfo *loop,
                                         std::vector<const LoopInfo *> inners)
   {
-    auto innersOrig = loop->getInners();
+    decltype(inners) innersOrig{loop->getInners().begin(),
+                                loop->getInners().end()};
+
     std::sort(innersOrig.begin(), innersOrig.end());
     std::sort(inners.begin(), inners.end());
 
-    return std::equal(inners.begin(), inners.end(), innersOrig.begin(),
-                      innersOrig.end());
+    if (inners != innersOrig)
+    {
+      auto os = testing::AssertionFailure();
+      os << "Expected inners: [ ";
+      for (const auto *p : inners)
+        os << p << " ";
+
+      os << "], got: [ ";
+      for (const auto *p : innersOrig)
+        os << p << " ";
+
+      os << "]";
+      return os;
+    }
+
+    return testing::AssertionSuccess();
   }
 
   LoopAnalyzer loopAnalyzer;
@@ -55,6 +114,8 @@ TEST_F(LoopAnalyzerTest, basic)
   // Assert
   ASSERT_EQ(l1, l2);
   EXPECT_TRUE(l1->isRoot());
+  EXPECT_TRUE(checkHeader(l1));
+  EXPECT_TRUE(checkBackEdges(l1, {}));
   EXPECT_EQ(l1->getOuterLoop(), nullptr);
   EXPECT_TRUE(l1->contains(bbs[0]));
   EXPECT_TRUE(l1->contains(bbs[1]));
@@ -76,6 +137,15 @@ TEST_F(LoopAnalyzerTest, simpleLoop)
   // Assert
   ASSERT_EQ(l1, l2);
   EXPECT_FALSE(l1->isRoot());
+
+  auto v1 = l1->getBodyAsVector();
+  auto bbsC = toConstBBs();
+  std::sort(v1.begin(), v1.end());
+  std::sort(bbsC.begin(), bbsC.end());
+  EXPECT_EQ(v1, bbsC);
+
+  EXPECT_TRUE(checkHeader(l1, 0));
+  EXPECT_TRUE(checkBackEdges(l1, {1}));
   EXPECT_EQ(l1->getOuterLoop(), nullptr);
   EXPECT_TRUE(l1->reducible());
   EXPECT_TRUE(l1->contains(bbs[0]));
@@ -97,6 +167,8 @@ TEST_F(LoopAnalyzerTest, example1)
     ASSERT_EQ(root, getLoopInfo(i));
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
 
   for (const auto &bb : bbs)
     EXPECT_TRUE(root->contains(bb));
@@ -121,12 +193,16 @@ TEST_F(LoopAnalyzerTest, example2)
   ASSERT_EQ((std::unordered_set{root, l1, l2, l3}.size()), 4);
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
   EXPECT_EQ(getLoopInfo(8), root);
   EXPECT_EQ(getLoopInfo(10), root);
   EXPECT_EQ(root->getOuterLoop(), nullptr);
   EXPECT_TRUE(checkInners(root, {l1}));
 
   EXPECT_FALSE(l1->isRoot());
+  EXPECT_TRUE(checkHeader(l1, 1));
+  EXPECT_TRUE(checkBackEdges(l1, {7}));
   EXPECT_EQ(getLoopInfo(6), l1);
   EXPECT_EQ(getLoopInfo(7), l1);
   EXPECT_EQ(getLoopInfo(9), l1);
@@ -135,12 +211,16 @@ TEST_F(LoopAnalyzerTest, example2)
   EXPECT_TRUE(checkInners(l1, {l3, l2}));
 
   EXPECT_FALSE(l2->isRoot());
+  EXPECT_TRUE(checkHeader(l2, 2));
+  EXPECT_TRUE(checkBackEdges(l2, {3}));
   EXPECT_EQ(getLoopInfo(3), l2);
   EXPECT_EQ(l2->getOuterLoop(), l1);
   EXPECT_TRUE(l2->reducible());
   EXPECT_TRUE(checkInners(l2, {}));
 
   EXPECT_FALSE(l3->isRoot());
+  EXPECT_TRUE(checkBackEdges(l3, {5}));
+  EXPECT_TRUE(checkHeader(l3, 4));
   EXPECT_EQ(getLoopInfo(5), l3);
   EXPECT_EQ(l3->getOuterLoop(), l1);
   EXPECT_TRUE(l3->reducible());
@@ -162,6 +242,8 @@ TEST_F(LoopAnalyzerTest, example3)
   ASSERT_EQ((std::unordered_set{root, irrLoop, loop}.size()), 3);
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
   EXPECT_EQ(getLoopInfo(3), root);
   EXPECT_EQ(getLoopInfo(7), root);
   EXPECT_EQ(getLoopInfo(8), root);
@@ -170,12 +252,16 @@ TEST_F(LoopAnalyzerTest, example3)
 
   EXPECT_FALSE(irrLoop->isRoot());
   EXPECT_FALSE(irrLoop->reducible());
+  EXPECT_TRUE(checkBackEdges(irrLoop, {6}));
+  EXPECT_TRUE(checkHeader(irrLoop, 2));
   EXPECT_EQ(getLoopInfo(6), irrLoop);
   EXPECT_EQ(irrLoop->getOuterLoop(), root);
   EXPECT_TRUE(checkInners(irrLoop, {}));
 
   EXPECT_FALSE(loop->isRoot());
   EXPECT_TRUE(loop->reducible());
+  EXPECT_TRUE(checkHeader(loop, 1));
+  EXPECT_TRUE(checkBackEdges(loop, {5}));
   EXPECT_EQ(getLoopInfo(4), loop);
   EXPECT_EQ(getLoopInfo(5), loop);
   EXPECT_EQ(loop->getOuterLoop(), root);
@@ -196,11 +282,15 @@ TEST_F(LoopAnalyzerTest, example4)
   ASSERT_NE(root, loop);
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
   EXPECT_EQ(getLoopInfo(2), root);
   EXPECT_EQ(root->getOuterLoop(), nullptr);
   EXPECT_TRUE(checkInners(root, {loop}));
 
   EXPECT_FALSE(loop->isRoot());
+  EXPECT_TRUE(checkHeader(loop, 1));
+  EXPECT_TRUE(checkBackEdges(loop, {4}));
   EXPECT_TRUE(loop->reducible());
   EXPECT_EQ(getLoopInfo(3), loop);
   EXPECT_EQ(getLoopInfo(4), loop);
@@ -222,11 +312,15 @@ TEST_F(LoopAnalyzerTest, example5)
   ASSERT_NE(root, loop);
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkBackEdges(root, {}));
+  EXPECT_TRUE(checkHeader(root));
   EXPECT_EQ(getLoopInfo(3), root);
   EXPECT_EQ(root->getOuterLoop(), nullptr);
   EXPECT_TRUE(checkInners(root, {loop}));
 
   EXPECT_FALSE(loop->isRoot());
+  EXPECT_TRUE(checkHeader(loop, 1));
+  EXPECT_TRUE(checkBackEdges(loop, {5}));
   EXPECT_TRUE(loop->reducible());
   EXPECT_EQ(getLoopInfo(2), loop);
   EXPECT_EQ(getLoopInfo(4), loop);
@@ -250,16 +344,22 @@ TEST_F(LoopAnalyzerTest, example6)
   ASSERT_EQ((std::unordered_set{root, mainLoop, loop}.size()), 3);
 
   EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
   EXPECT_EQ(root->getOuterLoop(), nullptr);
   EXPECT_TRUE(checkInners(root, {mainLoop}));
 
   EXPECT_FALSE(mainLoop->isRoot());
+  EXPECT_TRUE(checkBackEdges(mainLoop, {7}));
+  EXPECT_TRUE(checkHeader(mainLoop, 0));
   EXPECT_TRUE(mainLoop->reducible());
   EXPECT_EQ(getLoopInfo(7), mainLoop);
   EXPECT_EQ(mainLoop->getOuterLoop(), root);
   EXPECT_TRUE(checkInners(mainLoop, {loop}));
 
   EXPECT_FALSE(loop->isRoot());
+  EXPECT_TRUE(checkBackEdges(loop, {6}));
+  EXPECT_TRUE(checkHeader(loop, 1));
   EXPECT_TRUE(loop->reducible());
   EXPECT_EQ(getLoopInfo(2), loop);
   EXPECT_EQ(getLoopInfo(3), loop);
