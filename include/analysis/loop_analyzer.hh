@@ -79,6 +79,18 @@ public:
       addNode(node);
     }
 
+    [[nodiscard]] const auto &getBody() const noexcept
+    {
+      return m_body;
+    }
+
+    [[nodiscard]] auto getBodyAsVector() const noexcept
+    {
+      auto res = std::vector(m_body.cbegin(), m_body.cend());
+      res.push_back(m_header);
+      return res;
+    }
+
     [[nodiscard]] const auto &getBackEdgesSrc() const noexcept
     {
       return m_backEdgesSrc;
