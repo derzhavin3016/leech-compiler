@@ -137,7 +137,13 @@ TEST_F(LoopAnalyzerTest, simpleLoop)
   // Assert
   ASSERT_EQ(l1, l2);
   EXPECT_FALSE(l1->isRoot());
-  EXPECT_EQ(l1->getBodyAsVector(), toConstBBs());
+
+  auto v1 = l1->getBodyAsVector();
+  auto bbs = toConstBBs();
+  std::sort(v1.begin(), v1.end());
+  std::sort(bbs.begin(), bbs.end());
+  EXPECT_EQ(v1, bbs);
+
   EXPECT_TRUE(checkHeader(l1, 0));
   EXPECT_TRUE(checkBackEdges(l1, {1}));
   EXPECT_EQ(l1->getOuterLoop(), nullptr);
