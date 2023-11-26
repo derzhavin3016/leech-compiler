@@ -102,7 +102,7 @@ private:
     calcIdoms();
   }
 
-  [[nodiscard]] auto getDomTree() &&noexcept
+  [[nodiscard]] auto &&getDomTree() &&noexcept
   {
     return std::move(m_domTree);
   }
