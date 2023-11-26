@@ -34,6 +34,7 @@ public:
   {
     NodePtrTy m_header{};
     std::unordered_set<NodePtrTy> m_body{};
+    std::vector<NodePtrTy> m_backEdgesSrc{};
     LoopInfo *m_outer = nullptr;
     std::vector<LoopInfo *> m_inners{};
 
@@ -72,6 +73,17 @@ public:
       m_body.insert(node);
     }
 
+    void addBackEdge(NodePtrTy node)
+    {
+      m_backEdgesSrc.push_back(node);
+      addNode(node);
+    }
+
+    [[nodiscard]] const auto &getBackEdgesSrc() const noexcept
+    {
+      return m_backEdgesSrc;
+    }
+
     [[nodiscard]] auto getOuterLoop() const noexcept
     {
       return m_outer;
@@ -97,7 +109,7 @@ public:
     void populate(NodesToLoop &nodesToLoop)
     {
       // Associate all sources of back edges w/ this loop
-      for (const auto &backSrc : m_body)
+      for (const auto &backSrc : m_backEdgesSrc)
         nodesToLoop.emplace(backSrc, this);
 
       // If it is irreducible, that's all
@@ -114,7 +126,7 @@ public:
         visited.insert(node);
       };
 
-      std::for_each(m_body.cbegin(), m_body.cend(), vis);
+      std::for_each(m_backEdgesSrc.cbegin(), m_backEdgesSrc.cend(), vis);
 
       // DFS loop
       while (!toVisit.empty())
@@ -244,7 +256,7 @@ private:
           &emplaceBackToList<LoopInfo>(m_analyzer.m_loops, tar, isReducible);
       }
 
-      it->second->addNode(src);
+      it->second->addBackEdge(src);
     }
   };
 
