@@ -183,6 +183,9 @@ public:
 
   LoopAnalyzer() = default;
 
+  LJIT_NO_COPY_SEMANTICS(LoopAnalyzer);
+  LJIT_NO_MOVE_SEMANTICS(LoopAnalyzer);
+
   explicit LoopAnalyzer(const GraphTy &graph)
   {
     Nodes nonHeadNodes;
