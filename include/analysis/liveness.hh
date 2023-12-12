@@ -114,7 +114,7 @@ private:
   static bool checkBB(NodePtrTy node, const VisitedSet &visited)
   {
     return checkPreds(
-      node, [&](auto node) { return visited.find(node) != visited.end(); });
+      node, [&](auto nd) { return visited.find(nd) != visited.end(); });
   }
 
   LoopsTy m_loops;
