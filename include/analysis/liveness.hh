@@ -85,6 +85,8 @@ private:
 
       visitNode(*unvisNode);
     }
+
+    return res;
   }
 
   using LoopsTy = LoopAnalyzer<GraphTy>;

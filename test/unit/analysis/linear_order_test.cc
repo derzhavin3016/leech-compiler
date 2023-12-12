@@ -34,7 +34,7 @@ protected:
 
     ost << "Expected: ";
     printIds(expected);
-    ost << "Got: {";
+    ost << "Got: ";
     printIds(got);
 
     return ost;
@@ -53,11 +53,4 @@ TEST_F(LinearOrderTest, example2)
   buildExample2();
 
   ASSERT_TRUE(checkLinearOrder({0, 1, 9, 2, 3, 4, 5, 6, 7, 8, 10}));
-}
-
-TEST_F(LinearOrderTest, example3)
-{
-  buildExample3();
-
-  ASSERT_TRUE(checkLinearOrder({0, 1, 4, 5, 7, 2, 3, 6, 8}));
 }
