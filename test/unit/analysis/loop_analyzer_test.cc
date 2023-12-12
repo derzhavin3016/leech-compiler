@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory>
 #include <optional>
 #include <unordered_set>
 
@@ -15,16 +16,16 @@ class LoopAnalyzerTest : public ljit::testing::GraphTestBuilder
 protected:
   LoopAnalyzerTest() = default;
 
+  using LoopAnalyzer = ljit::LoopAnalyzer<ljit::BasicBlockGraph>;
   void buildLoopAnalyzer()
   {
-    loopAnalyzer = decltype(loopAnalyzer){func->makeBBGraph()};
+    loopAnalyzer = std::make_unique<LoopAnalyzer>(func->makeBBGraph());
   }
-  using LoopAnalyzer = ljit::LoopAnalyzer<ljit::BasicBlockGraph>;
   using LoopInfo = typename LoopAnalyzer::LoopInfo;
 
   [[nodiscard]] const auto *getLoopInfo(std::size_t bbId) const
   {
-    return loopAnalyzer.getLoopInfo(bbs.at(bbId));
+    return loopAnalyzer->getLoopInfo(bbs.at(bbId));
   }
 
   [[nodiscard]] auto checkHeader(
@@ -96,7 +97,7 @@ protected:
     return testing::AssertionSuccess();
   }
 
-  LoopAnalyzer loopAnalyzer;
+  std::unique_ptr<LoopAnalyzer> loopAnalyzer;
 };
 
 TEST_F(LoopAnalyzerTest, basic)

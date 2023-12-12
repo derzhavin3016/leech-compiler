@@ -196,6 +196,26 @@ public:
     m_vars.push_back(PhiEntry{val, bb});
   }
 
+  [[nodiscard]] auto begin()
+  {
+    return m_vars.begin();
+  }
+
+  [[nodiscard]] auto begin() const
+  {
+    return m_vars.begin();
+  }
+
+  [[nodiscard]] auto end()
+  {
+    return m_vars.end();
+  }
+
+  [[nodiscard]] auto end() const
+  {
+    return m_vars.end();
+  }
+
   void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
