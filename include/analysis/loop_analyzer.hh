@@ -192,9 +192,6 @@ public:
     Nodes loopHeadPostOrder;
 
     m_nodesToLoop = collectBackEdges(graph, loopHeadPostOrder, nonHeadNodes);
-    std::ofstream f{"HAHA.log"};
-    std::transform(loopHeadPostOrder.begin(), loopHeadPostOrder.end(),
-                   std::ostream_iterator<size_t>{f, ",,,\n"}, Traits::id);
     std::for_each(loopHeadPostOrder.cbegin(), loopHeadPostOrder.cend(),
                   [&](const auto node) {
                     const auto found = m_nodesToLoop.find(node);
