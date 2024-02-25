@@ -45,45 +45,25 @@ private:
   {
     // Get post order
     const auto rpoOrder = graph::depthFirstSearchReversePostOrder(graph);
+
     using NodeIt = typename Traits::node_iterator;
+
     LinearOrderNodes res;
     VisitedSet visited;
     std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
     res.reserve(rpoOrder.size());
 
-    auto &&visitNode = [&](NodePtrTy node) {
-      toVisit.emplace(Traits::succBegin(node), node);
-      visited.insert(node);
-      res.push_back(node);
-    };
-
-    visitNode(Traits::entryPoint(graph));
-
-    while (!toVisit.empty())
+    for (const auto *bb : rpoOrder)
     {
-      auto &&[first, parent] = toVisit.top();
-      toVisit.pop();
+      auto [it, new_bb] = visited.insert(bb);
 
-      const auto endSucc = Traits::succEnd(parent);
-      const auto unvisNode =
-        std::find_if(first, endSucc, [&](const auto pNode) {
-          if (visited.find(pNode) != visited.end())
-            return false;
-
-          // check for loop header
-          if (const auto *const lInfo = m_loops.getLoopInfo(pNode);
-              lInfo->getHeader() == pNode)
-            return checkLoopHeader(lInfo, visited);
-
-          return checkBB(pNode, visited);
-        });
-
-      if (unvisNode == endSucc)
+      if (!new_bb)
         continue;
 
-      toVisit.emplace(std::next(unvisNode), parent);
-
-      visitNode(*unvisNode);
+      // Reducible loop
+      if (const auto *loopInfo = m_loops.getLoopInfo(bb); loopInfo->getHeader() == bb && loopInfo->reducible()) {
+        checkLoopHeader(loopInfo, visited);
+      }
     }
 
     return res;
@@ -91,13 +71,6 @@ private:
 
   using LoopsTy = LoopAnalyzer<GraphTy>;
   using LoopInfo = typename LoopsTy::LoopInfo;
-
-  template <typename Pred>
-  static bool checkPreds(NodePtrTy node, Pred &&pred)
-  {
-    return std::all_of(Traits::predBegin(node), Traits::predEnd(node),
-                       std::forward<Pred>(pred));
-  }
 
   static bool checkLoopHeader(const LoopInfo *lInfo, const VisitedSet &visited)
   {
@@ -109,12 +82,6 @@ private:
     return checkPreds(lInfo->getHeader(), [&](auto pNode) {
       return visited.find(pNode) != visited.end() || lInfo->contains(pNode);
     });
-  }
-
-  static bool checkBB(NodePtrTy node, const VisitedSet &visited)
-  {
-    return checkPreds(
-      node, [&](auto nd) { return visited.find(nd) != visited.end(); });
   }
 
   LoopsTy m_loops;
