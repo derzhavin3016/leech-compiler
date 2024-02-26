@@ -50,9 +50,7 @@ private:
     for (auto it = body.rbegin(); it != body.rend(); ++it)
     {
       const auto *bb = *it;
-      auto &&[setIt, wasNew] = visited.insert(bb);
-
-      if (!wasNew)
+      if (visited.find(bb) != visited.end())
         continue;
 
       if (const auto *const subLoopInfo = m_loops.getLoopInfo(bb);
@@ -63,6 +61,7 @@ private:
       else
       {
         *out++ = bb;
+        visited.insert(bb);
       }
     }
   }
@@ -81,9 +80,7 @@ private:
 
     for (const auto *bb : rpoOrder)
     {
-      auto [it, new_bb] = visited.insert(bb);
-
-      if (!new_bb)
+      if (visited.find(bb) != visited.end())
         continue;
 
       // Reducible loop
@@ -95,8 +92,12 @@ private:
       else
       {
         res.push_back(bb);
+        visited.insert(bb);
       }
     }
+
+    LJIT_ASSERT_MSG(res.size() == rpoOrder.size(),
+                    "Missed some bb in Linear order");
 
     return res;
   }
