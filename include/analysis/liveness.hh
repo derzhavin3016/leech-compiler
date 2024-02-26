@@ -1,10 +1,10 @@
 #ifndef LEECH_JIT_INCLUDE_ANALYSIS_LIVENESS_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_ANALYSIS_LIVENESS_HH_INCLUDED
 
+#include "common/common.hh"
 #include "graph/dfs.hh"
 #include "ir/basic_block.hh"
 #include "loop_analyzer.hh"
-#include <algorithm>
 #include <iterator>
 #include <stack>
 #include <unordered_set>
@@ -40,6 +40,32 @@ public:
 
 private:
   using VisitedSet = std::unordered_set<NodePtrTy>;
+  using LoopsTy = LoopAnalyzer<GraphTy>;
+  using LoopInfo = typename LoopsTy::LoopInfo;
+
+  template <typename OutIt>
+  void traverseLoop(const LoopInfo *lInfo, VisitedSet &visited, OutIt out) const
+  {
+    auto &&body = lInfo->getBodyAsVector();
+    for (auto it = body.rbegin(); it != body.rend(); ++it)
+    {
+      const auto *bb = *it;
+      auto &&[setIt, wasNew] = visited.insert(bb);
+
+      if (!wasNew)
+        continue;
+
+      if (const auto *const subLoopInfo = m_loops.getLoopInfo(bb);
+          lInfo != subLoopInfo && subLoopInfo->getHeader() == bb)
+      {
+        traverseLoop(subLoopInfo, visited, out);
+      }
+      else
+      {
+        *out++ = bb;
+      }
+    }
+  }
 
   [[nodiscard]] LinearOrderNodes buildLinearOrder(const GraphTy &graph) const
   {
@@ -61,27 +87,18 @@ private:
         continue;
 
       // Reducible loop
-      if (const auto *loopInfo = m_loops.getLoopInfo(bb); loopInfo->getHeader() == bb && loopInfo->reducible()) {
-        checkLoopHeader(loopInfo, visited);
+      if (const auto *loopInfo = m_loops.getLoopInfo(bb);
+          loopInfo->getHeader() == bb && loopInfo->reducible())
+      {
+        traverseLoop(loopInfo, visited, std::back_inserter(res));
+      }
+      else
+      {
+        res.push_back(bb);
       }
     }
 
     return res;
-  }
-
-  using LoopsTy = LoopAnalyzer<GraphTy>;
-  using LoopInfo = typename LoopsTy::LoopInfo;
-
-  static bool checkLoopHeader(const LoopInfo *lInfo, const VisitedSet &visited)
-  {
-    // Irreducible loop - no check
-    if (!lInfo->reducible())
-      return true;
-
-    // Reducible loop - check for external nodes visit state
-    return checkPreds(lInfo->getHeader(), [&](auto pNode) {
-      return visited.find(pNode) != visited.end() || lInfo->contains(pNode);
-    });
   }
 
   LoopsTy m_loops;
