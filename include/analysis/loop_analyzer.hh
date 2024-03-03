@@ -33,7 +33,7 @@ public:
   class LoopInfo final : public IListNode
   {
     NodePtrTy m_header{};
-    std::unordered_set<NodePtrTy> m_body{};
+    std::vector<NodePtrTy> m_body{};
     std::vector<NodePtrTy> m_backEdgesSrc{};
     LoopInfo *m_outer = nullptr;
     std::vector<LoopInfo *> m_inners{};
@@ -70,7 +70,7 @@ public:
 
     void addNode(NodePtrTy node)
     {
-      m_body.insert(node);
+      m_body.push_back(node);
     }
 
     void addBackEdge(NodePtrTy node)
@@ -108,7 +108,8 @@ public:
 
     [[nodiscard]] auto contains(NodePtrTy node) const
     {
-      return node == m_header || m_body.find(node) != m_body.end();
+      return node == m_header ||
+             std::find(m_body.begin(), m_body.end(), node) != m_body.end();
     }
 
   private:
@@ -154,12 +155,8 @@ public:
 
             const auto [it, wasNew] = nodesToLoop.emplace(node, this);
 
-            if (wasNew)
-            {
-              // Add to body
-              addNode(it->first);
-            }
-            else
+            addNode(it->first);
+            if (!wasNew)
             {
               // Link loops
               const auto *inner = it->second;
@@ -209,7 +206,6 @@ public:
       &emplaceBackToList<LoopInfo>(m_loops, nullptr, false, true);
 
     // Put all free nodes to the root loop
-
     for (const auto &node : nonHeadNodes)
     {
       const auto [it, wasNew] = m_nodesToLoop.emplace(node, rootLoop);
@@ -221,6 +217,7 @@ public:
       if (&loop != rootLoop && loop.getOuterLoop() == nullptr)
         rootLoop->addInnerLoop(&loop);
     });
+
   }
 
   [[nodiscard]] const auto *getLoopInfo(NodePtrTy node) const

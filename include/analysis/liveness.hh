@@ -5,6 +5,7 @@
 #include "graph/dfs.hh"
 #include "ir/basic_block.hh"
 #include "loop_analyzer.hh"
+#include <algorithm>
 #include <iterator>
 #include <stack>
 #include <unordered_set>
@@ -47,9 +48,15 @@ private:
   void traverseLoop(const LoopInfo *lInfo, VisitedSet &visited, OutIt out) const
   {
     auto &&body = lInfo->getBodyAsVector();
+    std::cout << "LOOP\n";
+    for (auto b : body) {
+      std::cout << b->getId() << std::endl;
+    }
+
     for (auto it = body.rbegin(); it != body.rend(); ++it)
     {
       const auto *bb = *it;
+
       if (visited.find(bb) != visited.end())
         continue;
 
