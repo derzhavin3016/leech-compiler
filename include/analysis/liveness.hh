@@ -49,10 +49,6 @@ private:
   void traverseLoop(const LoopInfo *lInfo, VisitedSet &visited, OutIt out) const
   {
     auto &&body = lInfo->getBodyAsVector();
-    std::cout << "LOOP\n";
-    for (auto b : body) {
-      std::cout << b->getId() << std::endl;
-    }
 
     for (auto it = body.rbegin(); it != body.rend(); ++it)
     {
@@ -73,11 +69,6 @@ private:
     VisitedSet visited;
     std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
     res.reserve(rpoOrder.size());
-    for (auto b : rpoOrder)
-    {
-      std::cout << b->getId() << std::endl;
-    }
-    std::cout << "RPO\n";
 
     for (const auto *bb : rpoOrder)
     {
