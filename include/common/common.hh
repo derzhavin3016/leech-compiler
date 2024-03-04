@@ -52,6 +52,23 @@
 
 namespace ljit
 {
+namespace detail
+{
+[[noreturn]] inline void unreachable_impl(const char *msg, const char *file,
+                                          unsigned line)
+{
+  if (msg != nullptr)
+    LJIT_PRINT_ERR("%s\n", msg);
+  LJIT_PRINT_ERR("UNREACHABLE executed ");
+
+  if (file != nullptr)
+    LJIT_PRINT_ERR("at %s:%u", file, line);
+
+  LJIT_PRINT_ERR("!\n");
+  LJIT_ABORT();
+}
+} // namespace detail
+
 template <class EnumT>
 constexpr auto toUnderlying(EnumT val) noexcept
 {
@@ -60,5 +77,8 @@ constexpr auto toUnderlying(EnumT val) noexcept
   return static_cast<std::underlying_type_t<EnumT>>(val);
 }
 } // namespace ljit
+
+#define LJIT_UNREACHABLE(msg)                                                  \
+  ::ljit::detail::unreachable_impl(msg, __FILE__, __LINE__)
 
 #endif /* LEECH_JIT_INCLUDE_COMMON_COMMON_HH_INCLUDED */

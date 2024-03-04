@@ -45,7 +45,7 @@ TEST_F(LinearOrderTest, example1)
 {
   buildExample1();
 
-  ASSERT_TRUE(checkLinearOrder({0, 1, 2, 5, 4, 6, 3}));
+  ASSERT_TRUE(checkLinearOrder({0, 1, 5, 6, 4, 2, 3}));
 }
 
 TEST_F(LinearOrderTest, example2)
@@ -53,4 +53,32 @@ TEST_F(LinearOrderTest, example2)
   buildExample2();
 
   ASSERT_TRUE(checkLinearOrder({0, 1, 9, 2, 3, 4, 5, 6, 7, 8, 10}));
+}
+
+TEST_F(LinearOrderTest, example3)
+{
+  buildExample3();
+
+  ASSERT_TRUE(checkLinearOrder({0, 1, 4, 5, 7, 2, 3, 6, 8}));
+}
+
+TEST_F(LinearOrderTest, example4)
+{
+  buildExample4();
+
+  ASSERT_TRUE(checkLinearOrder({0, 1, 3, 4, 2}));
+}
+
+TEST_F(LinearOrderTest, example5)
+{
+  buildExample5();
+
+  ASSERT_TRUE(checkLinearOrder({0, 1, 2, 4, 5, 3}));
+}
+
+TEST_F(LinearOrderTest, example6)
+{
+  buildExample6();
+
+  ASSERT_TRUE(checkLinearOrder({0, 1, 3, 2, 5, 6, 7, 4}));
 }

@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_ANALYSIS_LOOP_ANALYZER_HH_INCLUDED
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <iterator>
 #include <stack>
@@ -33,7 +34,7 @@ public:
   class LoopInfo final : public IListNode
   {
     NodePtrTy m_header{};
-    std::unordered_set<NodePtrTy> m_body{};
+    std::vector<NodePtrTy> m_body{};
     std::vector<NodePtrTy> m_backEdgesSrc{};
     LoopInfo *m_outer = nullptr;
     std::vector<LoopInfo *> m_inners{};
@@ -70,7 +71,16 @@ public:
 
     void addNode(NodePtrTy node)
     {
-      m_body.insert(node);
+      m_body.push_back(node);
+    }
+
+    template <typename InputIt>
+    void addNodes(InputIt begin, InputIt end)
+    {
+      const auto size = std::distance(begin, end);
+      LJIT_ASSERT(size >= 0);
+      m_body.reserve(m_body.size() + static_cast<std::size_t>(size));
+      std::copy(begin, end, std::back_inserter(m_body));
     }
 
     void addBackEdge(NodePtrTy node)
@@ -108,7 +118,8 @@ public:
 
     [[nodiscard]] auto contains(NodePtrTy node) const
     {
-      return node == m_header || m_body.find(node) != m_body.end();
+      return node == m_header ||
+             std::find(m_body.begin(), m_body.end(), node) != m_body.end();
     }
 
   private:
@@ -156,15 +167,18 @@ public:
 
             if (wasNew)
             {
-              // Add to body
               addNode(it->first);
             }
-            else
+            else // !wasNew
             {
               // Link loops
               const auto *inner = it->second;
               if (inner->getOuterLoop() == nullptr)
+              {
+                const auto &body = inner->getBodyAsVector();
+                addNodes(body.begin(), body.end());
                 addInnerLoop(it->second);
+              }
             }
 
             return true;
@@ -209,7 +223,6 @@ public:
       &emplaceBackToList<LoopInfo>(m_loops, nullptr, false, true);
 
     // Put all free nodes to the root loop
-
     for (const auto &node : nonHeadNodes)
     {
       const auto [it, wasNew] = m_nodesToLoop.emplace(node, rootLoop);
