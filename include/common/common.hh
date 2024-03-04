@@ -50,12 +50,6 @@
 
 #define LJIT_ASSERT(cond) LJIT_ASSERT_MSG(cond, "%s", "")
 
-#if __has_builtin(__builtin_unreachable) || defined(__GNUC__)
-#define LJIT_BUILTIN_UNREACHABLE __builtin_unreachable()
-#elif defined(_MSC_VER)
-#define LJIT_BUILTIN_UNREACHABLE __assume(false)
-#endif
-
 namespace ljit
 {
 namespace detail
@@ -72,9 +66,6 @@ namespace detail
 
   LJIT_PRINT_ERR("!\n");
   LJIT_ABORT();
-#if defined(LJIT_BUILTIN_UNREACHABLE)
-  LJIT_BUILTIN_UNREACHABLE;
-#endif
 }
 } // namespace detail
 
