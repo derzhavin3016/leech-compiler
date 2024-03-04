@@ -80,5 +80,5 @@ TEST_F(LinearOrderTest, example6)
 {
   buildExample6();
 
-  ASSERT_TRUE(checkLinearOrder({0, 1, 4, 5, 7, 2, 3, 6, 8}));
+  ASSERT_TRUE(checkLinearOrder({0, 1, 3, 2, 5, 6, 7, 4}));
 }

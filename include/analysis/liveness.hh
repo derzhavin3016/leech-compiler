@@ -1,16 +1,17 @@
 #ifndef LEECH_JIT_INCLUDE_ANALYSIS_LIVENESS_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_ANALYSIS_LIVENESS_HH_INCLUDED
 
-#include "common/common.hh"
-#include "graph/dfs.hh"
-#include "ir/basic_block.hh"
-#include "loop_analyzer.hh"
 #include <algorithm>
 #include <iterator>
 #include <stack>
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+#include "common/common.hh"
+#include "graph/dfs.hh"
+#include "ir/basic_block.hh"
+#include "loop_analyzer.hh"
 
 namespace ljit
 {
@@ -56,20 +57,8 @@ private:
     for (auto it = body.rbegin(); it != body.rend(); ++it)
     {
       const auto *bb = *it;
-
-      if (visited.find(bb) != visited.end())
-        continue;
-
-      if (const auto *const subLoopInfo = m_loops.getLoopInfo(bb);
-          lInfo != subLoopInfo && subLoopInfo->getHeader() == bb)
-      {
-        traverseLoop(subLoopInfo, visited, out);
-      }
-      else
-      {
-        *out++ = bb;
-        visited.insert(bb);
-      }
+      *out++ = bb;
+      visited.insert(bb);
     }
   }
 
@@ -84,6 +73,11 @@ private:
     VisitedSet visited;
     std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
     res.reserve(rpoOrder.size());
+    for (auto b : rpoOrder)
+    {
+      std::cout << b->getId() << std::endl;
+    }
+    std::cout << "RPO\n";
 
     for (const auto *bb : rpoOrder)
     {

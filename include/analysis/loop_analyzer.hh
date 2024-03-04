@@ -2,6 +2,7 @@
 #define LEECH_JIT_INCLUDE_ANALYSIS_LOOP_ANALYZER_HH_INCLUDED
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <iterator>
 #include <stack>
@@ -71,6 +72,15 @@ public:
     void addNode(NodePtrTy node)
     {
       m_body.push_back(node);
+    }
+
+    template <typename InputIt>
+    void addNodes(InputIt begin, InputIt end)
+    {
+      const auto size = std::distance(begin, end);
+      LJIT_ASSERT(size >= 0);
+      m_body.reserve(m_body.size() + static_cast<std::size_t>(size));
+      std::copy(begin, end, std::back_inserter(m_body));
     }
 
     void addBackEdge(NodePtrTy node)
@@ -155,13 +165,20 @@ public:
 
             const auto [it, wasNew] = nodesToLoop.emplace(node, this);
 
-            addNode(it->first);
-            if (!wasNew)
+            if (wasNew)
+            {
+              addNode(it->first);
+            }
+            else // !wasNew
             {
               // Link loops
               const auto *inner = it->second;
               if (inner->getOuterLoop() == nullptr)
+              {
+                const auto &body = inner->getBodyAsVector();
+                addNodes(body.begin(), body.end());
                 addInnerLoop(it->second);
+              }
             }
 
             return true;
@@ -217,7 +234,6 @@ public:
       if (&loop != rootLoop && loop.getOuterLoop() == nullptr)
         rootLoop->addInnerLoop(&loop);
     });
-
   }
 
   [[nodiscard]] const auto *getLoopInfo(NodePtrTy node) const
