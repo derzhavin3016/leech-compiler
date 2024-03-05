@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include "intrusive_list/intrusive_list.hh"
@@ -34,10 +35,12 @@ public:
   class LoopInfo final : public IListNode
   {
     NodePtrTy m_header{};
-    std::vector<NodePtrTy> m_body{};
+    using NodeOrLoop = std::variant<NodePtrTy, LoopInfo *>;
+
+    std::vector<NodeOrLoop> m_body{};
     std::vector<NodePtrTy> m_backEdgesSrc{};
-    LoopInfo *m_outer = nullptr;
     std::vector<LoopInfo *> m_inners{};
+    const LoopInfo *m_outer = nullptr;
 
     bool m_reducible = false;
     bool m_root = false;
@@ -71,16 +74,7 @@ public:
 
     void addNode(NodePtrTy node)
     {
-      m_body.push_back(node);
-    }
-
-    template <typename InputIt>
-    void addNodes(InputIt begin, InputIt end)
-    {
-      const auto size = std::distance(begin, end);
-      LJIT_ASSERT(size >= 0);
-      m_body.reserve(m_body.size() + static_cast<std::size_t>(size));
-      std::copy(begin, end, std::back_inserter(m_body));
+      m_body.emplace_back(node);
     }
 
     void addBackEdge(NodePtrTy node)
@@ -89,15 +83,20 @@ public:
       addNode(node);
     }
 
-    [[nodiscard]] const auto &getBody() const noexcept
+    [[nodiscard]] std::vector<NodePtrTy> getLinearOrder() const noexcept
     {
-      return m_body;
-    }
+      std::vector<NodePtrTy> res{m_header};
 
-    [[nodiscard]] auto getBodyAsVector() const noexcept
-    {
-      auto res = std::vector(m_body.cbegin(), m_body.cend());
-      res.push_back(m_header);
+      for (auto it = m_body.crbegin(); it != m_body.crend(); ++it)
+      {
+        std::visit(utils::Overloaded{[&res](NodePtrTy p) { res.push_back(p); },
+                                     [&res](LoopInfo *lp) {
+                                       auto &&body = lp->getLinearOrder();
+                                       std::copy(body.begin(), body.end(),
+                                                 std::back_inserter(res));
+                                     }},
+                   *it);
+      }
       return res;
     }
 
@@ -118,14 +117,15 @@ public:
 
     [[nodiscard]] auto contains(NodePtrTy node) const
     {
-      return node == m_header ||
-             std::find(m_body.begin(), m_body.end(), node) != m_body.end();
+      return node == m_header || std::find(m_body.begin(), m_body.end(),
+                                           NodeOrLoop{node}) != m_body.end();
     }
 
   private:
     void addInnerLoop(LoopInfo *inner)
     {
       m_inners.push_back(inner);
+      m_body.emplace_back(inner);
       inner->setOuter(this);
     }
 
@@ -174,11 +174,7 @@ public:
               // Link loops
               const auto *inner = it->second;
               if (inner->getOuterLoop() == nullptr)
-              {
-                const auto &body = inner->getBodyAsVector();
-                addNodes(body.begin(), body.end());
                 addInnerLoop(it->second);
-              }
             }
 
             return true;

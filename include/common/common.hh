@@ -52,6 +52,20 @@
 
 namespace ljit
 {
+namespace utils
+{
+template <typename... F>
+struct Overloaded : public F...
+{
+  using F::operator()...;
+};
+
+#if __cplusplus < 202002L
+template <class... F>
+Overloaded(F...) -> Overloaded<F...>;
+#endif
+} // namespace utils
+
 namespace detail
 {
 [[noreturn]] inline void unreachable_impl(const char *msg, const char *file,

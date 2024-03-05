@@ -48,11 +48,10 @@ private:
   template <typename OutIt>
   void traverseLoop(const LoopInfo *lInfo, VisitedSet &visited, OutIt out) const
   {
-    auto &&body = lInfo->getBodyAsVector();
+    auto &&body = lInfo->getLinearOrder();
 
-    for (auto it = body.rbegin(); it != body.rend(); ++it)
+    for (const auto *bb : body)
     {
-      const auto *bb = *it;
       *out++ = bb;
       visited.insert(bb);
     }
