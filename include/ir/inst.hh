@@ -54,6 +54,8 @@ class Inst : public Value, public IListNode
 {
   InstType m_iType{};
   BasicBlock *m_bb{nullptr};
+  std::size_t m_liveNum{};
+  std::size_t m_linearNum{};
 
 protected:
   explicit Inst(InstType iType) noexcept : m_iType(iType)
@@ -75,6 +77,25 @@ public:
   {
     m_bb = bb;
   }
+
+  void setLinearNum(std::size_t num)
+  {
+    m_linearNum = num;
+  }
+  void setLiveNum(std::size_t num)
+  {
+    m_liveNum = num;
+  }
+
+  [[nodiscard]] auto getLiveNum() const noexcept
+  {
+    return m_liveNum;
+  }
+  [[nodiscard]] auto getLinearNum() const noexcept
+  {
+    return m_linearNum;
+  }
+
   [[nodiscard]] auto getInstType() const noexcept
   {
     return m_iType;

@@ -140,10 +140,10 @@ TEST_F(LoopAnalyzerTest, simpleLoop)
   EXPECT_FALSE(l1->isRoot());
 
   auto v1 = l1->getLinearOrder();
-  auto bbsC = toConstBBs();
+
   std::sort(v1.begin(), v1.end());
-  std::sort(bbsC.begin(), bbsC.end());
-  EXPECT_EQ(v1, bbsC);
+  std::sort(bbs.begin(), bbs.end());
+  EXPECT_EQ(v1, bbs);
 
   EXPECT_TRUE(checkHeader(l1, 0));
   EXPECT_TRUE(checkBackEdges(l1, {1}));

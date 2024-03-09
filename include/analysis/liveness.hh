@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iterator>
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -11,6 +12,7 @@
 #include "common/common.hh"
 #include "graph/dfs.hh"
 #include "ir/basic_block.hh"
+#include "ir/inst.hh"
 #include "loop_analyzer.hh"
 
 namespace ljit
@@ -33,24 +35,98 @@ public:
 
   explicit LivenessAnalyzer(const GraphTy &graph)
     : m_loops(graph), m_linearOrder(buildLinearOrder(graph))
-  {}
+  {
+    fillLiveNumbers();
+  }
 
   [[nodiscard]] const auto &getLinearOrder() const noexcept
   {
     return m_linearOrder;
   }
 
+  static constexpr std::size_t kLiveNumStep = 2;
+  static constexpr std::size_t kLinNumStep = 1;
+
 private:
   using VisitedSet = std::unordered_set<NodePtrTy>;
   using LoopsTy = LoopAnalyzer<GraphTy>;
   using LoopInfo = typename LoopsTy::LoopInfo;
+
+  using LiveSet = std::unordered_set<Inst *>;
+
+  void fillLiveNumbers()
+  {
+    std::size_t curLin{};
+    std::size_t curLive{};
+
+    for (auto *bb : m_linearOrder)
+    {
+      const auto bbLiveNum = curLive;
+      for (auto &inst : *bb)
+      {
+        const bool isPhi = inst.getInstType() == InstType::kPhi;
+        inst.setLiveNum(isPhi ? bbLiveNum : curLive);
+
+        if (!isPhi)
+          curLive += kLiveNumStep;
+
+        inst.setLinearNum(curLin);
+        curLin += kLinNumStep;
+      }
+
+      bb->setLiveInterval({bbLiveNum, curLive});
+    }
+  }
+
+  auto &calcInitLiveSet(NodePtrTy bb)
+  {
+    auto &&[it, wasNew] = m_liveSets.emplace(bb);
+    LJIT_ASSERT(!wasNew);
+    auto &liveSet = it->second;
+
+    std::for_each(Traits::succBegin(bb), Traits::succEnd(bb),
+                  [&](NodePtrTy succ) { processSucc(bb, succ, liveSet); });
+
+    return liveSet;
+  }
+
+  void processSucc(NodePtrTy bb, NodePtrTy succ, LiveSet &set) const
+  {
+    auto foundIt = m_liveSets.find(succ);
+    if (foundIt == m_liveSets.end())
+      return;
+    auto &&succLiveSet = foundIt->second;
+
+    // Unite current set w/ successor's set
+    set.insert(succLiveSet.begin(), succLiveSet.end());
+
+    for (const auto &inst : *succ) {
+      if (inst.getInstType() == InstType::kPhi) {
+        const auto &phi = static_cast<const Phi &>(inst);
+        for (const auto &entry : phi) {
+          if (entry.bb == bb)
+            set.insert(entry.m_val);
+        }
+      }
+    }
+  }
+
+  void calcLiveRanges()
+  {
+    for (auto it = m_linearOrder.rbegin(); it != m_linearOrder.rend(); ++it)
+    {
+      auto *const block = *it;
+
+      const auto &initLiveSet = calcInitLiveSet(block);
+    }
+  }
 
   template <typename OutIt>
   void traverseLoop(const LoopInfo *lInfo, VisitedSet &visited, OutIt out) const
   {
     auto &&body = lInfo->getLinearOrder();
 
-    for (const auto *bb : body)
+    for (auto *bb : body)
     {
       *out++ = bb;
       visited.insert(bb);
@@ -69,7 +145,7 @@ private:
     std::stack<std::pair<NodeIt, NodePtrTy>> toVisit;
     res.reserve(rpoOrder.size());
 
-    for (const auto *bb : rpoOrder)
+    for (auto *bb : rpoOrder)
     {
       if (visited.find(bb) != visited.end())
         continue;
@@ -95,6 +171,7 @@ private:
 
   LoopsTy m_loops;
   LinearOrderNodes m_linearOrder;
+  std::unordered_map<NodePtrTy, LiveSet> m_liveSets;
 };
 } // namespace ljit
 

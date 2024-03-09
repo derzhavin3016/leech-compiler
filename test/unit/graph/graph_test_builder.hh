@@ -23,13 +23,6 @@ protected:
     std::generate(bbs.begin(), bbs.end(), [this] { return func->appendBB(); });
   }
 
-  [[nodiscard]] auto toConstBBs() const
-  {
-    std::vector<const ljit::BasicBlock *> cBBs(bbs.size());
-    std::copy(bbs.begin(), bbs.end(), cBBs.begin());
-    return cBBs;
-  }
-
   void makeEdge(std::size_t idPred, std::size_t idSucc)
   {
     bbs.at(idPred)->linkSucc(bbs.at(idSucc));

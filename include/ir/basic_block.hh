@@ -19,6 +19,26 @@
 
 namespace ljit
 {
+class LiveInterval final
+{
+  std::size_t m_start{};
+  std::size_t m_end{};
+
+public:
+  LiveInterval() = default;
+  LiveInterval(std::size_t start, std::size_t end) : m_start(start), m_end(end)
+  {}
+
+  [[nodiscard]] auto getStart() const
+  {
+    return m_start;
+  }
+
+  [[nodiscard]] auto getEnd() const
+  {
+    return m_end;
+  }
+};
 
 class BasicBlock final : public IListNode
 {
@@ -26,6 +46,7 @@ class BasicBlock final : public IListNode
   std::vector<BasicBlock *> m_pred{};
   std::vector<BasicBlock *> m_succ{};
   std::size_t m_id{};
+  LiveInterval m_interval{};
 
 public:
   BasicBlock() = default;
@@ -62,6 +83,26 @@ public:
     return m_succ.size();
   }
 
+  [[nodiscard]] auto begin() const
+  {
+    return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto begin()
+  {
+    return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto end() const
+  {
+    return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto end()
+  {
+    return m_instructions.begin();
+  }
+
   [[nodiscard]] auto &getFirst() const noexcept
   {
     return m_instructions.front();
@@ -69,6 +110,16 @@ public:
   [[nodiscard]] auto &getLast() const noexcept
   {
     return m_instructions.back();
+  }
+
+  void setLiveInterval(LiveInterval interval)
+  {
+    m_interval = interval;
+  }
+
+  [[nodiscard]] const auto &getLiveInterval() const
+  {
+    return m_interval;
   }
 
   template <class T, class... Args>
@@ -132,7 +183,7 @@ private:
 class BasicBlockGraph final
 {
 public:
-  using value_type = const BasicBlock;
+  using value_type = BasicBlock;
   using pointer = value_type *;
 
   BasicBlockGraph(pointer root, std::size_t size) noexcept
