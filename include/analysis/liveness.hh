@@ -52,7 +52,7 @@ private:
   using LoopsTy = LoopAnalyzer<GraphTy>;
   using LoopInfo = typename LoopsTy::LoopInfo;
 
-  using LiveSet = std::unordered_set<Inst *>;
+  using LiveSet = std::unordered_set<Value *>;
 
   void fillLiveNumbers()
   {
@@ -80,7 +80,7 @@ private:
 
   auto &calcInitLiveSet(NodePtrTy bb)
   {
-    auto &&[it, wasNew] = m_liveSets.emplace(bb);
+    auto &&[it, wasNew] = m_liveSets.insert({bb, {}});
     LJIT_ASSERT(!wasNew);
     auto &liveSet = it->second;
 
@@ -100,10 +100,13 @@ private:
     // Unite current set w/ successor's set
     set.insert(succLiveSet.begin(), succLiveSet.end());
 
-    for (const auto &inst : *succ) {
-      if (inst.getInstType() == InstType::kPhi) {
+    for (const auto &inst : *succ)
+    {
+      if (inst.getInstType() == InstType::kPhi)
+      {
         const auto &phi = static_cast<const Phi &>(inst);
-        for (const auto &entry : phi) {
+        for (const auto &entry : phi)
+        {
           if (entry.bb == bb)
             set.insert(entry.m_val);
         }
