@@ -54,6 +54,15 @@ private:
 
   using LiveSet = std::unordered_set<Value *>;
 
+  void updateLiveInterval(Value *val, const LiveInterval &interval)
+  {
+    auto &&[it, wasNew] = m_liveIntervals.try_emplace(val, interval);
+    if (wasNew)
+      return;
+
+    it->second.update(interval);
+  }
+
   void fillLiveNumbers()
   {
     std::size_t curLin{};
@@ -120,7 +129,38 @@ private:
     {
       auto *const block = *it;
 
-      const auto &initLiveSet = calcInitLiveSet(block);
+      auto &initLiveSet = calcInitLiveSet(block);
+      for (const auto &val : initLiveSet)
+        updateLiveInterval(val, block->getLiveInterval());
+
+      std::for_each(block->rbegin(), block->rend(), [&](Inst &inst) {
+        const auto liveNum = inst.getLiveNum();
+        auto &&[instIt, wasNew] =
+          m_liveIntervals.try_emplace(&inst, liveNum, liveNum + kLiveNumStep);
+
+        if (!wasNew)
+          instIt->second.setStart(liveNum);
+        initLiveSet.erase(&inst);
+
+        processInputs(inst);
+      });
+    }
+  }
+
+  void processInst(const Inst &inst, LiveSet &liveSet)
+  {
+    switch (inst.getInstType())
+    {
+    case InstType::kIf:
+    case InstType::kConst:
+    case InstType::kJump:
+    case InstType::kBinOp:
+    case InstType::kCast:
+    case InstType::kPhi:
+      break;
+    case InstType::kUnknown:
+    default:
+      break;
     }
   }
 
@@ -175,6 +215,7 @@ private:
   LoopsTy m_loops;
   LinearOrderNodes m_linearOrder;
   std::unordered_map<NodePtrTy, LiveSet> m_liveSets;
+  std::unordered_map<Value *, LiveInterval> m_liveIntervals;
 };
 } // namespace ljit
 

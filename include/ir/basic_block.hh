@@ -4,8 +4,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <iterator>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -24,10 +26,33 @@ class LiveInterval final
   std::size_t m_start{};
   std::size_t m_end{};
 
+  void validate() const
+  {
+    if (m_start > m_end)
+    {
+      throw std::runtime_error{
+        "Trying to create incorrect interval (start > end)"};
+    }
+  }
+
 public:
   LiveInterval() = default;
   LiveInterval(std::size_t start, std::size_t end) : m_start(start), m_end(end)
-  {}
+  {
+    validate();
+  }
+
+  void setStart(std::size_t start)
+  {
+    m_start = start;
+    validate();
+  }
+
+  void setEnd(std::size_t end)
+  {
+    m_end = end;
+    validate();
+  }
 
   [[nodiscard]] auto getStart() const
   {
@@ -37,6 +62,12 @@ public:
   [[nodiscard]] auto getEnd() const
   {
     return m_end;
+  }
+
+  void update(const LiveInterval &other)
+  {
+    m_start = std::min(m_start, other.m_start);
+    m_end = std::max(m_end, other.m_end);
   }
 };
 
@@ -101,6 +132,26 @@ public:
   [[nodiscard]] auto end()
   {
     return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto rbegin() const
+  {
+    return std::reverse_iterator{end()};
+  }
+
+  [[nodiscard]] auto rbegin()
+  {
+    return std::reverse_iterator{end()};
+  }
+
+  [[nodiscard]] auto rend() const
+  {
+    return std::reverse_iterator{begin()};
+  }
+
+  [[nodiscard]] auto rend()
+  {
+    return std::reverse_iterator{begin()};
   }
 
   [[nodiscard]] auto &getFirst() const noexcept
