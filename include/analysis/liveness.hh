@@ -37,6 +37,7 @@ public:
     : m_loops(graph), m_linearOrder(buildLinearOrder(graph))
   {
     fillLiveNumbers();
+    calcLiveRanges();
   }
 
   [[nodiscard]] const auto &getLinearOrder() const noexcept

@@ -25,4 +25,7 @@ TEST_F(LivenessTest, lecture)
 
   // Act
   buildLivenessAnalyzer();
+
+  // Assert
+
 }
