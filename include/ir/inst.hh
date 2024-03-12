@@ -77,7 +77,6 @@ public:
   {
     m_bb = bb;
   }
-
   void setLinearNum(std::size_t num)
   {
     m_linearNum = num;
@@ -247,8 +246,10 @@ public:
   enum class Oper
   {
     kAdd,
+    kSub,
     kMul,
     kLE,
+    kEQ,
   };
 
 private:

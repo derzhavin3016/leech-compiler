@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "ir/function.hh"
+#include "ir/inst.hh"
 
 namespace ljit::testing
 {
@@ -34,6 +35,8 @@ protected:
   void buildExample4();
   void buildExample5();
   void buildExample6();
+
+  void buildLivLectureExample();
 
   std::unique_ptr<ljit::Function> func{};
   std::vector<ljit::BasicBlock *> bbs{};
@@ -372,6 +375,60 @@ inline void GraphTestBuilder::buildExample6()
   makeEdge(6, 7);
   makeEdge(6, 1);
   makeEdge(7, 0);
+}
+
+/* Liveness example from lecture
+ *******************************
+bb0:
+  v0 = const i64 1
+  v1 = const i64 10
+  v2 = const i64 20
+  jmp bb1
+
+bb1:
+  v3 = phi i64 [v0, bb0], [v7, bb2]
+  v4 = phi i64 [v1, bb0], [v8, bb2]
+  v5 = cmp eq v4, v0
+  if v5, bb3, bb2
+
+bb2:
+  v7 = mul i64 v3, v4
+  v8 = sub i64 v4, v0
+  jmp bb1
+
+bb3:
+  v9 = add i64 v2, v3
+  ret v9
+
+ */
+inline void GraphTestBuilder::buildLivLectureExample()
+{
+  genBBs(4);
+
+  // bb0
+  auto *const v0 = bbs[0]->pushInstBack<ConstVal_I64>(1);
+  auto *const v1 = bbs[0]->pushInstBack<ConstVal_I64>(10);
+  auto *const v2 = bbs[0]->pushInstBack<ConstVal_I64>(20);
+  bbs[0]->pushInstBack<JumpInstr>(bbs[1]);
+
+  // bb1
+  auto *const v3 = bbs[1]->pushInstBack<Phi>(Type::I64);
+  v3->addNode(v0, bbs[0]);
+  auto *const v4 = bbs[1]->pushInstBack<Phi>(Type::I64);
+  v3->addNode(v1, bbs[0]);
+  auto *const v5 = bbs[1]->pushInstBack<BinOp>(BinOp::Oper::kEQ, v4, v0);
+  bbs[1]->pushInstBack<IfInstr>(v5, bbs[3], bbs[2]);
+
+  // bb2
+  auto *const v7 = bbs[2]->pushInstBack<BinOp>(BinOp::Oper::kMul, v3, v4);
+  v3->addNode(v7, bbs[2]);
+  auto *const v8 = bbs[2]->pushInstBack<BinOp>(BinOp::Oper::kSub, v4, v0);
+  v4->addNode(v8, bbs[2]);
+  bbs[2]->pushInstBack<JumpInstr>(bbs[1]);
+
+  // bb3
+  auto *const v9 = bbs[3]->pushInstBack<BinOp>(BinOp::Oper::kAdd, v2, v3);
+  bbs[3]->pushInstBack<Ret>(v9);
 }
 } // namespace ljit::testing
 

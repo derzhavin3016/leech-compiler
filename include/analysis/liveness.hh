@@ -44,10 +44,10 @@ public:
     return m_linearOrder;
   }
 
+private:
   static constexpr std::size_t kLiveNumStep = 2;
   static constexpr std::size_t kLinNumStep = 1;
 
-private:
   using VisitedSet = std::unordered_set<NodePtrTy>;
   using LoopsTy = LoopAnalyzer<GraphTy>;
   using LoopInfo = typename LoopsTy::LoopInfo;
@@ -127,13 +127,13 @@ private:
   {
     for (auto it = m_linearOrder.rbegin(); it != m_linearOrder.rend(); ++it)
     {
-      auto *const block = *it;
+      auto &block = **it;
 
-      auto &initLiveSet = calcInitLiveSet(block);
+      auto &initLiveSet = calcInitLiveSet(&block);
       for (const auto &val : initLiveSet)
-        updateLiveInterval(val, block->getLiveInterval());
+        updateLiveInterval(val, block.getLiveInterval());
 
-      std::for_each(block->rbegin(), block->rend(), [&](Inst &inst) {
+      std::for_each(block.rbegin(), block.rend(), [&](Inst &inst) {
         const auto liveNum = inst.getLiveNum();
         auto &&[instIt, wasNew] =
           m_liveIntervals.try_emplace(&inst, liveNum, liveNum + kLiveNumStep);
@@ -142,23 +142,52 @@ private:
           instIt->second.setStart(liveNum);
         initLiveSet.erase(&inst);
 
-        processInputs(inst);
+        processInputs(inst, initLiveSet, block.getLiveInterval().getStart());
       });
+
+      for (auto &inst : block)
+      {
+        if (inst.getInstType() == InstType::kPhi)
+          initLiveSet.erase(&inst);
+      }
+
+      if (const auto *const loopInfo = m_loops.getLoopInfo(&block);
+          loopInfo->getHeader() == &block && loopInfo->reducible())
+      {
+        const auto start = block.getLiveInterval().getStart();
+        const auto end = loopInfo->getLastBB()->getLiveInterval().getEnd();
+        for (auto *v : initLiveSet)
+          updateLiveInterval(v, {start, end});
+      }
     }
   }
 
-  void processInst(const Inst &inst, LiveSet &liveSet)
+  void processInputs(const Inst &inst, LiveSet &liveSet, std::size_t bbLiveNum)
   {
+    auto &&consumeInput = [&liveSet, this, bbLiveNum, &inst](Value *val) {
+      LJIT_ASSERT(val != nullptr);
+      liveSet.insert(val);
+      updateLiveInterval(val, {bbLiveNum, inst.getLiveNum()});
+    };
+
     switch (inst.getInstType())
     {
+    case InstType::kBinOp: {
+      const auto &binop = static_cast<const BinOp &>(inst);
+      consumeInput(binop.getLeft());
+      consumeInput(binop.getRight());
+      break;
+    }
+    case InstType::kCast:
+      consumeInput(static_cast<const Cast &>(inst).getSrc());
+      break;
+    case InstType::kUnknown:
+      LJIT_UNREACHABLE("Unknown inst input");
     case InstType::kIf:
     case InstType::kConst:
     case InstType::kJump:
-    case InstType::kBinOp:
-    case InstType::kCast:
+    case InstType::kRet:
     case InstType::kPhi:
-      break;
-    case InstType::kUnknown:
     default:
       break;
     }
