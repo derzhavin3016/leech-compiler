@@ -18,8 +18,8 @@ protected:
   std::unique_ptr<ljit::LivenessAnalyzer> livAnalyzer;
 };
 
-
-TEST_F(LivenessTest, lecture) {
+TEST_F(LivenessTest, lecture)
+{
   // Assign
   buildLivLectureExample();
 
