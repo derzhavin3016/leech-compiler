@@ -26,7 +26,7 @@ class LiveInterval final
   std::size_t m_start{};
   std::size_t m_end{};
 
-  void validate() const
+  constexpr void validate() const
   {
     if (m_start > m_end)
     {
