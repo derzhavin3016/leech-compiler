@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <optional>
 #include <stack>
 #include <unordered_map>
 #include <unordered_set>
@@ -36,6 +37,7 @@ public:
   explicit LivenessAnalyzer(const GraphTy &graph)
     : m_loops(graph), m_linearOrder(buildLinearOrder(graph))
   {
+    LJIT_ASSERT(validateLinOrder());
     fillLiveNumbers();
     calcLiveRanges();
   }
@@ -43,6 +45,15 @@ public:
   [[nodiscard]] const auto &getLinearOrder() const noexcept
   {
     return m_linearOrder;
+  }
+
+  [[nodiscard]] std::optional<LiveInterval> getLiveInterval(Value *val) const
+  {
+    const auto foundIt = m_liveIntervals.find(val);
+    if (foundIt == m_liveIntervals.end())
+      return std::nullopt;
+
+    return foundIt->second;
   }
 
 private:
@@ -75,23 +86,24 @@ private:
       for (auto &inst : *bb)
       {
         const bool isPhi = inst.getInstType() == InstType::kPhi;
-        inst.setLiveNum(isPhi ? bbLiveNum : curLive);
 
         if (!isPhi)
           curLive += kLiveNumStep;
+
+        inst.setLiveNum(isPhi ? bbLiveNum : curLive);
 
         inst.setLinearNum(curLin);
         curLin += kLinNumStep;
       }
 
-      bb->setLiveInterval({bbLiveNum, curLive});
+      bb->setLiveInterval({bbLiveNum, curLive += kLiveNumStep});
     }
   }
 
   auto &calcInitLiveSet(NodePtrTy bb)
   {
     auto &&[it, wasNew] = m_liveSets.insert({bb, {}});
-    LJIT_ASSERT(!wasNew);
+    LJIT_ASSERT(wasNew);
     auto &liveSet = it->second;
 
     std::for_each(Traits::succBegin(bb), Traits::succEnd(bb),
@@ -122,6 +134,14 @@ private:
         }
       }
     }
+  }
+
+  bool validateLinOrder() const
+  {
+    return m_linearOrder.size() ==
+           std::unordered_set<NodePtrTy>{m_linearOrder.begin(),
+                                         m_linearOrder.end()}
+             .size();
   }
 
   void calcLiveRanges()

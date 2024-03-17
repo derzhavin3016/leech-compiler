@@ -36,40 +36,74 @@ class LiveInterval final
   }
 
 public:
-  LiveInterval() = default;
-  LiveInterval(std::size_t start, std::size_t end) : m_start(start), m_end(end)
+  constexpr LiveInterval() = default;
+  constexpr LiveInterval(std::size_t start, std::size_t end)
+    : m_start(start), m_end(end)
   {
     validate();
   }
 
-  void setStart(std::size_t start)
+  constexpr void setStart(std::size_t start)
   {
     m_start = start;
     validate();
   }
 
-  void setEnd(std::size_t end)
+  constexpr void setEnd(std::size_t end)
   {
     m_end = end;
     validate();
   }
 
-  [[nodiscard]] auto getStart() const
+  [[nodiscard]] constexpr auto getStart() const
   {
     return m_start;
   }
 
-  [[nodiscard]] auto getEnd() const
+  [[nodiscard]] constexpr auto getEnd() const
   {
     return m_end;
   }
 
-  void update(const LiveInterval &other)
+  [[nodiscard]] constexpr bool empty() const
+  {
+    return m_start == m_end;
+  }
+
+  constexpr void update(const LiveInterval &other)
   {
     m_start = std::min(m_start, other.m_start);
     m_end = std::max(m_end, other.m_end);
   }
+
+  [[nodiscard]] constexpr bool equal(const LiveInterval &rhs) const
+  {
+    return m_start == rhs.m_start && m_end == rhs.m_end;
+  }
+
+  void print(std::ostream &ost) const
+  {
+    ost << '[' << m_start << ", " << m_end << ']';
+  }
 };
+
+inline std::ostream &operator<<(std::ostream &ost, const LiveInterval &interval)
+{
+  interval.print(ost);
+  return ost;
+}
+
+[[nodiscard]] constexpr bool operator==(const LiveInterval &lhs,
+                                        const LiveInterval &rhs)
+{
+  return lhs.equal(rhs);
+}
+
+[[nodiscard]] constexpr bool operator!=(const LiveInterval &lhs,
+                                        const LiveInterval &rhs)
+{
+  return !(lhs == rhs);
+}
 
 class BasicBlock final : public IListNode
 {
@@ -126,12 +160,12 @@ public:
 
   [[nodiscard]] auto end() const
   {
-    return m_instructions.begin();
+    return m_instructions.end();
   }
 
   [[nodiscard]] auto end()
   {
-    return m_instructions.begin();
+    return m_instructions.end();
   }
 
   [[nodiscard]] auto rbegin() const
