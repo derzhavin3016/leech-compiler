@@ -85,7 +85,7 @@ TEST_F(DFSTest, simple)
   for (std::size_t i = 0; i < bbs.size() - 1; ++i)
     makeEdge(i, i + 1);
 
-  auto answer = toConstBBs();
+  auto answer = bbs;
   auto answer1 = answer;
   std::reverse(answer1.begin(), answer1.end());
 

@@ -1,19 +1,17 @@
-#include "gtest/gtest.h"
 #include <algorithm>
 #include <cstddef>
-#include <gtest/gtest.h>
 #include <memory>
+
+#include <gtest/gtest.h>
 
 #include "../graph/graph_test_builder.hh"
 #include "analysis/liveness.hh"
-#include "ir/basic_block.hh"
 
 class LinearOrderTest : public ljit::testing::GraphTestBuilder
 {
 protected:
-  LinearOrderTest()
-  {}
-  auto checkLinearOrder(std::vector<std::size_t> expected)
+  LinearOrderTest() = default;
+  auto checkLinearOrder(const std::vector<std::size_t> &expected)
   {
     ljit::LivenessAnalyzer liveness(func->makeBBGraph());
     auto &&linOrder = liveness.getLinearOrder();

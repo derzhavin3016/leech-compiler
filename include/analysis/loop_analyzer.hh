@@ -83,7 +83,7 @@ public:
       addNode(node);
     }
 
-    [[nodiscard]] std::vector<NodePtrTy> getLinearOrder() const noexcept
+    [[nodiscard]] std::vector<NodePtrTy> getLinearOrder() const
     {
       std::vector<NodePtrTy> res{m_header};
 
@@ -98,6 +98,17 @@ public:
                    *it);
       }
       return res;
+    }
+
+    [[nodiscard]] NodePtrTy getLastBB() const
+    {
+      LJIT_ASSERT(!m_body.empty());
+      NodePtrTy toRet{};
+      std::visit(
+        utils::Overloaded{[&toRet](NodePtrTy p) { toRet = p; },
+                          [&toRet](auto *loop) { toRet = loop->getLastBB(); }},
+        m_body.front());
+      return toRet;
     }
 
     [[nodiscard]] const auto &getBackEdgesSrc() const noexcept

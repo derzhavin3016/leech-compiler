@@ -4,8 +4,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <iterator>
 #include <ostream>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -19,6 +21,89 @@
 
 namespace ljit
 {
+class LiveInterval final
+{
+  std::size_t m_start{};
+  std::size_t m_end{};
+
+  constexpr void validate() const
+  {
+    if (m_start > m_end)
+    {
+      throw std::runtime_error{
+        "Trying to create incorrect interval (start > end)"};
+    }
+  }
+
+public:
+  constexpr LiveInterval() = default;
+  constexpr LiveInterval(std::size_t start, std::size_t end)
+    : m_start(start), m_end(end)
+  {
+    validate();
+  }
+
+  constexpr void setStart(std::size_t start)
+  {
+    m_start = start;
+    validate();
+  }
+
+  constexpr void setEnd(std::size_t end)
+  {
+    m_end = end;
+    validate();
+  }
+
+  [[nodiscard]] constexpr auto getStart() const
+  {
+    return m_start;
+  }
+
+  [[nodiscard]] constexpr auto getEnd() const
+  {
+    return m_end;
+  }
+
+  [[nodiscard]] constexpr bool empty() const
+  {
+    return m_start == m_end;
+  }
+
+  constexpr void update(const LiveInterval &other)
+  {
+    m_start = std::min(m_start, other.m_start);
+    m_end = std::max(m_end, other.m_end);
+  }
+
+  [[nodiscard]] constexpr bool equal(const LiveInterval &rhs) const
+  {
+    return m_start == rhs.m_start && m_end == rhs.m_end;
+  }
+
+  void print(std::ostream &ost) const
+  {
+    ost << '[' << m_start << ", " << m_end << ']';
+  }
+};
+
+inline std::ostream &operator<<(std::ostream &ost, const LiveInterval &interval)
+{
+  interval.print(ost);
+  return ost;
+}
+
+[[nodiscard]] constexpr bool operator==(const LiveInterval &lhs,
+                                        const LiveInterval &rhs)
+{
+  return lhs.equal(rhs);
+}
+
+[[nodiscard]] constexpr bool operator!=(const LiveInterval &lhs,
+                                        const LiveInterval &rhs)
+{
+  return !(lhs == rhs);
+}
 
 class BasicBlock final : public IListNode
 {
@@ -26,6 +111,7 @@ class BasicBlock final : public IListNode
   std::vector<BasicBlock *> m_pred{};
   std::vector<BasicBlock *> m_succ{};
   std::size_t m_id{};
+  LiveInterval m_interval{};
 
 public:
   BasicBlock() = default;
@@ -62,6 +148,46 @@ public:
     return m_succ.size();
   }
 
+  [[nodiscard]] auto begin() const
+  {
+    return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto begin()
+  {
+    return m_instructions.begin();
+  }
+
+  [[nodiscard]] auto end() const
+  {
+    return m_instructions.end();
+  }
+
+  [[nodiscard]] auto end()
+  {
+    return m_instructions.end();
+  }
+
+  [[nodiscard]] auto rbegin() const
+  {
+    return std::reverse_iterator{end()};
+  }
+
+  [[nodiscard]] auto rbegin()
+  {
+    return std::reverse_iterator{end()};
+  }
+
+  [[nodiscard]] auto rend() const
+  {
+    return std::reverse_iterator{begin()};
+  }
+
+  [[nodiscard]] auto rend()
+  {
+    return std::reverse_iterator{begin()};
+  }
+
   [[nodiscard]] auto &getFirst() const noexcept
   {
     return m_instructions.front();
@@ -69,6 +195,16 @@ public:
   [[nodiscard]] auto &getLast() const noexcept
   {
     return m_instructions.back();
+  }
+
+  void setLiveInterval(LiveInterval interval)
+  {
+    m_interval = interval;
+  }
+
+  [[nodiscard]] const auto &getLiveInterval() const
+  {
+    return m_interval;
   }
 
   template <class T, class... Args>
@@ -132,7 +268,7 @@ private:
 class BasicBlockGraph final
 {
 public:
-  using value_type = const BasicBlock;
+  using value_type = BasicBlock;
   using pointer = value_type *;
 
   BasicBlockGraph(pointer root, std::size_t size) noexcept
