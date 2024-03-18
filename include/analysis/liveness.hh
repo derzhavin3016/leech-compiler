@@ -80,7 +80,7 @@ private:
     std::size_t curLin{};
     std::size_t curLive{};
 
-    for (auto *bb : m_linearOrder)
+    for (auto *bb : std::as_const(m_linearOrder))
     {
       const auto bbLiveNum = curLive;
       for (auto &inst : *bb)
@@ -139,14 +139,14 @@ private:
   bool validateLinOrder() const
   {
     return m_linearOrder.size() ==
-           std::unordered_set<NodePtrTy>{m_linearOrder.begin(),
-                                         m_linearOrder.end()}
+           std::unordered_set<NodePtrTy>{m_linearOrder.cbegin(),
+                                         m_linearOrder.cend()}
              .size();
   }
 
   void calcLiveRanges()
   {
-    for (auto it = m_linearOrder.rbegin(); it != m_linearOrder.rend(); ++it)
+    for (auto it = m_linearOrder.crbegin(); it != m_linearOrder.crend(); ++it)
     {
       auto &block = **it;
 
@@ -155,6 +155,9 @@ private:
         updateLiveInterval(val, block.getLiveInterval());
 
       std::for_each(block.rbegin(), block.rend(), [&](Inst &inst) {
+        if (inst.getInstType() == InstType::kPhi)
+          return;
+
         const auto liveNum = inst.getLiveNum();
         auto &&[instIt, wasNew] =
           m_liveIntervals.try_emplace(&inst, liveNum, liveNum + kLiveNumStep);
@@ -202,12 +205,17 @@ private:
     case InstType::kCast:
       consumeInput(static_cast<const Cast &>(inst).getSrc());
       break;
+    case InstType::kRet:
+      consumeInput(static_cast<const Ret &>(inst).getVal());
+      break;
+    case InstType::kIf:
+      consumeInput(static_cast<const IfInstr &>(inst).getCond());
+      break;
     case InstType::kUnknown:
       LJIT_UNREACHABLE("Unknown inst input");
-    case InstType::kIf:
+      break;
     case InstType::kConst:
     case InstType::kJump:
-    case InstType::kRet:
     case InstType::kPhi:
     default:
       break;

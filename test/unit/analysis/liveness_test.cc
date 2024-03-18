@@ -29,25 +29,13 @@ protected:
     if (!gotLiveIn.has_value())
     {
       return testing::AssertionFailure()
-             << "No interval found for value" << val;
+             << "No interval found for value " << val;
     }
     const auto &v = gotLiveIn.value();
     if (v != expIn)
     {
       return testing::AssertionFailure()
-             << "For value" << val << ". Expected: " << expIn << " Got: " << v;
-    }
-
-    return testing::AssertionSuccess();
-  }
-
-  [[nodiscard]] auto checkLiveIntervals(
-    const std::unordered_map<ljit::Value *, ljit::LiveInterval> &data) const
-  {
-    for (auto &&[val, exp] : data)
-    {
-      if (const auto bad = !checkLiveInterval(val, exp))
-        return bad;
+             << "For value " << val << ". Expected: " << expIn << " Got: " << v;
     }
 
     return testing::AssertionSuccess();
@@ -72,9 +60,19 @@ TEST_F(LivenessTest, lecture)
 
   // Assert
   ASSERT_EQ(liveNums.size(), insns.size());
+  // check live numbers
   for (std::size_t i = 0; i < insns.size(); ++i)
   {
     EXPECT_EQ(insns[i]->getLiveNum(), liveNums[i]);
   }
-  // EXPECT_TRUE(checkLiveIntervals({vals[0], {insns}}));
+
+  EXPECT_TRUE(checkLiveInterval(insns[0], {2, 24}));
+  EXPECT_TRUE(checkLiveInterval(insns[1], {4, 10}));
+  EXPECT_TRUE(checkLiveInterval(insns[2], {6, 26}));
+  EXPECT_TRUE(checkLiveInterval(insns[3], {10, 26}));
+  EXPECT_TRUE(checkLiveInterval(insns[4], {10, 20}));
+  EXPECT_TRUE(checkLiveInterval(insns[5], {12, 14}));
+  EXPECT_TRUE(checkLiveInterval(insns[7], {18, 20}));
+  EXPECT_TRUE(checkLiveInterval(insns[8], {20, 22}));
+  EXPECT_TRUE(checkLiveInterval(insns[9], {26, 28}));
 }

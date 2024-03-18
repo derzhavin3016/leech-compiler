@@ -154,6 +154,37 @@ TEST_F(LoopAnalyzerTest, simpleLoop)
   EXPECT_TRUE(l1->getInners().empty());
 }
 
+TEST_F(LoopAnalyzerTest, Lecture)
+{
+  // Assign
+  std::ignore = buildLivLectureExample();
+
+  // Act
+  buildLoopAnalyzer();
+  const auto *const root = getLoopInfo(0);
+  const auto *const l1 = getLoopInfo(1);
+
+  // Assert
+  ASSERT_EQ((std::unordered_set{root, l1}.size()), 2);
+
+  EXPECT_TRUE(root->isRoot());
+  EXPECT_TRUE(checkHeader(root));
+  EXPECT_TRUE(checkBackEdges(root, {}));
+  EXPECT_EQ(getLoopInfo(0), root);
+  EXPECT_EQ(getLoopInfo(3), root);
+  EXPECT_EQ(root->getOuterLoop(), nullptr);
+  EXPECT_TRUE(checkInners(root, {l1}));
+
+  EXPECT_FALSE(l1->isRoot());
+  EXPECT_TRUE(checkHeader(l1, 1));
+  EXPECT_TRUE(checkBackEdges(l1, {2}));
+  EXPECT_EQ(getLoopInfo(1), l1);
+  EXPECT_EQ(getLoopInfo(2), l1);
+  EXPECT_EQ(l1->getOuterLoop(), root);
+  EXPECT_TRUE(l1->reducible());
+  EXPECT_TRUE(checkInners(l1, {}));
+}
+
 TEST_F(LoopAnalyzerTest, example1)
 {
   // Assign
