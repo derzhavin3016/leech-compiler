@@ -56,6 +56,16 @@ public:
     return foundIt->second;
   }
 
+  [[nodiscard]] auto &getLiveIntervals() const &
+  {
+    return m_liveIntervals;
+  }
+
+  [[nodiscard]] auto &&getLiveIntervals() &&
+  {
+    return std::move(m_liveIntervals);
+  }
+
 private:
   static constexpr std::size_t kLiveNumStep = 2;
   static constexpr std::size_t kLinNumStep = 1;
@@ -218,7 +228,7 @@ private:
     case InstType::kJump:
     case InstType::kPhi:
     default:
-      break;
+      LJIT_UNREACHABLE("Unrecognized inst type");
     }
   }
 
