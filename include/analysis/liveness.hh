@@ -221,12 +221,13 @@ private:
     case InstType::kIf:
       consumeInput(static_cast<const IfInstr &>(inst).getCond());
       break;
-    case InstType::kUnknown:
-      LJIT_UNREACHABLE("Unknown inst input");
-      break;
     case InstType::kConst:
     case InstType::kJump:
     case InstType::kPhi:
+      break;
+    case InstType::kUnknown:
+      LJIT_UNREACHABLE("Unknown inst input");
+      break;
     default:
       LJIT_UNREACHABLE("Unrecognized inst type");
     }
