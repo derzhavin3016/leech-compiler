@@ -3,6 +3,7 @@
 
 #include "common/common.hh"
 #include "ir/basic_block.hh"
+#include "ir/inst.hh"
 #include "liveness.hh"
 #include <algorithm>
 #include <bitset>
@@ -62,7 +63,7 @@ class RegAllocator final
 
 public:
   explicit RegAllocator(const GraphTy &graph)
-    : m_liveIntervals(buildSortedLiveIntervals(graph))
+    : m_liveAnalyzer(graph), m_liveIntervals(buildSortedLiveIntervals())
   {
     linearScan();
   }
@@ -71,25 +72,39 @@ public:
   LJIT_NO_COPY_SEMANTICS(RegAllocator);
   LJIT_NO_MOVE_SEMANTICS(RegAllocator);
 
-private:
-  static std::vector<LiveInterval> buildSortedLiveIntervals(
-    const GraphTy &graph)
+  struct Location
   {
-    std::vector<LiveInterval> liveIns;
+    std::size_t locId{};
+    bool stack{};
+  };
+
+  [[nodiscard]] std::optional<Location> getLocation(ljit::Value *val) const
+  {
+    const auto &interval = m_liveAnalyzer.getLiveInterval(val);
+    if (!interval.has_value())
+      return std::nullopt;
+
+    return Location{interval->getLocId(), interval->isOnStack()};
+  }
+
+private:
+  std::vector<LiveInterval *> buildSortedLiveIntervals()
+  {
+    std::vector<LiveInterval *> liveIns;
     {
-      auto &&liveIntervals = LivenessAnalyzer{graph}.getLiveIntervals();
+      auto &liveIntervals = m_liveAnalyzer.getLiveIntervals();
       liveIns.reserve(liveIntervals.size());
 
-      for (auto &&[_, liveInt] : liveIntervals)
+      for (auto &&elem : liveIntervals)
       {
-        if (!liveInt.empty())
-          liveIns.push_back(liveInt);
+        if (!elem.second.empty())
+          liveIns.push_back(&elem.second);
       }
     }
 
     std::sort(liveIns.begin(), liveIns.end(),
-              [](const auto &lhs, const auto &rhs) {
-                return lhs.getStart() < rhs.getStart();
+              [](const auto *lhs, const auto *rhs) {
+                return lhs->getStart() < rhs->getStart();
               });
 
     return liveIns;
@@ -97,10 +112,10 @@ private:
 
   void linearScan()
   {
-    for (auto &liveIn : m_liveIntervals)
+    for (auto *liveIn : m_liveIntervals)
     {
       expireOldIntervals(liveIn);
-      if (m_active.size() == kNumRegs)
+      if (m_regPool.getUseCount() == kNumRegs)
       {
         spillAtInterval(liveIn);
       }
@@ -112,18 +127,18 @@ private:
           return allocated.value();
         }();
 
-        liveIn.setLocId(newRegId);
-        m_active.insert(&liveIn);
+        liveIn->setLocId(newRegId);
+        m_active.insert(liveIn);
       }
     }
   }
 
-  void expireOldIntervals(const LiveInterval &liveIn)
+  void expireOldIntervals(const LiveInterval *liveIn)
   {
     for (auto it = m_active.begin(); it != m_active.end();)
     {
       const auto &activeIn = **it;
-      if (activeIn.getEnd() > liveIn.getStart())
+      if (activeIn.getEnd() > liveIn->getStart())
         return;
 
       LJIT_ASSERT(!activeIn.isOnStack());
@@ -132,24 +147,24 @@ private:
     }
   }
 
-  void moveToStack(LiveInterval &liveIn)
+  void moveToStack(LiveInterval *liveIn)
   {
-    liveIn.setLocId(m_stackPos++);
-    liveIn.moveToStack();
+    liveIn->setLocId(m_stackPos++);
+    liveIn->moveToStack();
   }
 
-  void spillAtInterval(LiveInterval &liveIn)
+  void spillAtInterval(LiveInterval *liveIn)
   {
     const auto spillIt = std::prev(m_active.end());
-    if (auto &spill = **spillIt; spill.getEnd() > liveIn.getEnd())
+    if (auto &spill = **spillIt; spill.getEnd() > liveIn->getEnd())
     {
       LJIT_ASSERT(!spill.isOnStack());
-      liveIn.setLocId(spill.getLocId());
+      liveIn->setLocId(spill.getLocId());
 
-      moveToStack(spill);
+      moveToStack(&spill);
 
       m_active.erase(spillIt);
-      m_active.insert(&liveIn);
+      m_active.insert(liveIn);
       return;
     }
 
@@ -165,7 +180,8 @@ private:
   };
 
   RegisterPool<kNumRegs> m_regPool;
-  std::vector<LiveInterval> m_liveIntervals;
+  LivenessAnalyzer m_liveAnalyzer;
+  std::vector<LiveInterval *> m_liveIntervals;
   std::set<LiveInterval *, CompareLessEndP> m_active;
   std::size_t m_stackPos{};
 };

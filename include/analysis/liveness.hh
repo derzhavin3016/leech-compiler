@@ -56,7 +56,7 @@ public:
     return foundIt->second;
   }
 
-  [[nodiscard]] auto &getLiveIntervals() const &
+  [[nodiscard]] auto &getLiveIntervals() &
   {
     return m_liveIntervals;
   }
