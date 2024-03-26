@@ -46,16 +46,19 @@ public:
 
   constexpr void deallocateReg(std::size_t idx)
   {
+    LJIT_ASSERT(m_useCount != 0);
     LJIT_ASSERT_MSG(idx < m_regs.size(),
                     "Trying to deallocate register id which is out of bound");
-    m_regs.reset(idx);
+    typename decltype(m_regs)::reference bit = m_regs[idx];
+    LJIT_ASSERT(bit);
+    bit = false;
     --m_useCount;
   }
 };
 
 class RegAllocator final
 {
-  constexpr static std::size_t kNumRegs = 3;
+  constexpr static std::size_t kNumRegs = 5;
 
   using GraphTy = BasicBlockGraph;
   using Traits = GraphTraits<GraphTy>;
@@ -115,17 +118,14 @@ private:
     for (auto *liveIn : m_liveIntervals)
     {
       expireOldIntervals(liveIn);
-      if (m_regPool.getUseCount() == kNumRegs)
+      const auto allocated = m_regPool.allocateReg();
+      if (!allocated.has_value())
       {
         spillAtInterval(liveIn);
       }
       else
       {
-        const auto newRegId = [this] {
-          const auto allocated = m_regPool.allocateReg();
-          LJIT_ASSERT(allocated.has_value());
-          return allocated.value();
-        }();
+        const auto newRegId = *allocated;
 
         liveIn->setLocId(newRegId);
         m_active.insert(liveIn);

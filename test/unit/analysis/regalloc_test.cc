@@ -5,6 +5,56 @@
 #include "../graph/graph_test_builder.hh"
 #include "analysis/regalloc.hh"
 
+TEST(RegisterPool, basic)
+{
+  ljit::RegisterPool<3> pool;
+
+  const auto reg = pool.allocateReg();
+
+  ASSERT_TRUE(reg.has_value());
+  EXPECT_EQ(reg.value(), 0);
+  EXPECT_EQ(pool.getUseCount(), 1);
+}
+
+TEST(RegisterPool, basicDealloc)
+{
+  ljit::RegisterPool<3> pool;
+
+  const auto reg = pool.allocateReg();
+  const auto reg2 = pool.allocateReg();
+
+  ASSERT_TRUE(reg.has_value());
+  ASSERT_TRUE(reg2.has_value());
+
+  pool.deallocateReg(reg.value());
+
+  EXPECT_EQ(reg.value(), 0);
+  EXPECT_EQ(reg2.value(), 1);
+  EXPECT_EQ(pool.getUseCount(), 1);
+}
+
+TEST(RegisterPool, full)
+{
+  ljit::RegisterPool<3> pool;
+
+  const auto reg = pool.allocateReg();
+  const auto reg2 = pool.allocateReg();
+  const auto reg3 = pool.allocateReg();
+  const auto reg4 = pool.allocateReg();
+
+  ASSERT_TRUE(reg.has_value());
+  ASSERT_TRUE(reg2.has_value());
+  ASSERT_TRUE(reg3.has_value());
+  ASSERT_FALSE(reg4.has_value());
+
+  EXPECT_EQ(reg.value(), 0);
+  EXPECT_EQ(reg2.value(), 1);
+  EXPECT_EQ(reg3.value(), 2);
+  EXPECT_EQ(pool.getUseCount(), 3);
+}
+
+namespace
+{
 class RegAllocTest : public ljit::testing::GraphTestBuilder
 {
 protected:
@@ -38,7 +88,7 @@ protected:
 
   std::unique_ptr<ljit::RegAllocator> regAlloc;
 };
-
+} // namespace
 TEST_F(RegAllocTest, lecture)
 {
   auto insns = buildLivLectureExample();
