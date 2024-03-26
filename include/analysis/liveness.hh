@@ -56,6 +56,16 @@ public:
     return foundIt->second;
   }
 
+  [[nodiscard]] auto &getLiveIntervals() &
+  {
+    return m_liveIntervals;
+  }
+
+  [[nodiscard]] auto &&getLiveIntervals() &&
+  {
+    return std::move(m_liveIntervals);
+  }
+
 private:
   static constexpr std::size_t kLiveNumStep = 2;
   static constexpr std::size_t kLinNumStep = 1;
@@ -211,14 +221,15 @@ private:
     case InstType::kIf:
       consumeInput(static_cast<const IfInstr &>(inst).getCond());
       break;
-    case InstType::kUnknown:
-      LJIT_UNREACHABLE("Unknown inst input");
-      break;
     case InstType::kConst:
     case InstType::kJump:
     case InstType::kPhi:
-    default:
       break;
+    case InstType::kUnknown:
+      LJIT_UNREACHABLE("Unknown inst input");
+      break;
+    default:
+      LJIT_UNREACHABLE("Unrecognized inst type");
     }
   }
 
