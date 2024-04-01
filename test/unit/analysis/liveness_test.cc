@@ -72,6 +72,7 @@ TEST_F(LivenessTest, lecture)
   EXPECT_TRUE(checkLiveInterval(insns[3], {10, 26}));
   EXPECT_TRUE(checkLiveInterval(insns[4], {10, 20}));
   EXPECT_TRUE(checkLiveInterval(insns[5], {12, 14}));
+  EXPECT_TRUE(checkLiveInterval(insns[6], {14, 14}));
   EXPECT_TRUE(checkLiveInterval(insns[7], {18, 20}));
   EXPECT_TRUE(checkLiveInterval(insns[8], {20, 22}));
   EXPECT_TRUE(checkLiveInterval(insns[9], {26, 28}));

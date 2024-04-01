@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <fstream>
 #include <iterator>
+#include <limits>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
@@ -21,10 +23,14 @@
 
 namespace ljit
 {
+constexpr std::size_t kIvalidRegId = std::numeric_limits<std::size_t>::max();
+
 class LiveInterval final
 {
   std::size_t m_start{};
   std::size_t m_end{};
+  std::size_t m_locationId{kIvalidRegId};
+  bool m_onStack{false};
 
   constexpr void validate() const
   {
@@ -53,6 +59,26 @@ public:
   {
     m_end = end;
     validate();
+  }
+
+  constexpr void moveToStack()
+  {
+    m_onStack = true;
+  }
+
+  [[nodiscard]] constexpr bool isOnStack() const
+  {
+    return m_onStack;
+  }
+
+  [[nodiscard]] constexpr auto getLocId() const
+  {
+    return m_locationId;
+  }
+
+  constexpr void setLocId(std::size_t locId)
+  {
+    m_locationId = locId;
   }
 
   [[nodiscard]] constexpr auto getStart() const
