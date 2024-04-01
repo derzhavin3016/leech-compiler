@@ -58,7 +58,7 @@ public:
 
 class RegAllocator final
 {
-  constexpr static std::size_t kNumRegs = 5;
+  constexpr static std::size_t kNumRegs = 3;
 
   using GraphTy = BasicBlockGraph;
   using Traits = GraphTraits<GraphTy>;
@@ -118,13 +118,14 @@ private:
     for (auto *liveIn : m_liveIntervals)
     {
       expireOldIntervals(liveIn);
-      const auto allocated = m_regPool.allocateReg();
-      if (!allocated.has_value())
+      if (m_active.size() == kNumRegs)
       {
         spillAtInterval(liveIn);
       }
       else
       {
+        const auto allocated = m_regPool.allocateReg();
+        LJIT_ASSERT(allocated.has_value());
         const auto newRegId = *allocated;
 
         liveIn->setLocId(newRegId);
@@ -155,6 +156,7 @@ private:
 
   void spillAtInterval(LiveInterval *liveIn)
   {
+    LJIT_ASSERT(!m_active.empty());
     const auto spillIt = std::prev(m_active.end());
     if (auto &spill = **spillIt; spill.getEnd() > liveIn->getEnd())
     {
@@ -182,7 +184,7 @@ private:
   RegisterPool<kNumRegs> m_regPool;
   LivenessAnalyzer m_liveAnalyzer;
   std::vector<LiveInterval *> m_liveIntervals;
-  std::set<LiveInterval *, CompareLessEndP> m_active;
+  std::multiset<LiveInterval *, CompareLessEndP> m_active;
   std::size_t m_stackPos{};
 };
 
