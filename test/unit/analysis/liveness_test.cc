@@ -12,10 +12,10 @@
 #include "ir/basic_block.hh"
 #include "ir/inst.hh"
 
-class RegAllocTest : public ljit::testing::GraphTestBuilder
+class LivenessTest : public ljit::testing::GraphTestBuilder
 {
 protected:
-  RegAllocTest() = default;
+  LivenessTest() = default;
   void buildLivenessAnalyzer()
   {
     livAnalyzer = std::make_unique<std::decay_t<decltype(*livAnalyzer)>>(
@@ -44,7 +44,7 @@ protected:
   std::unique_ptr<ljit::LivenessAnalyzer> livAnalyzer;
 };
 
-TEST_F(RegAllocTest, lecture)
+TEST_F(LivenessTest, lecture)
 {
   // Assign
   const auto &vals = buildLivLectureExample();
