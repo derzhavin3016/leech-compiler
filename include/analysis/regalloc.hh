@@ -84,7 +84,7 @@ public:
   [[nodiscard]] std::optional<Location> getLocation(ljit::Value *val) const
   {
     const auto &interval = m_liveAnalyzer.getLiveInterval(val);
-    if (!interval.has_value())
+    if (!interval.has_value() || interval->empty())
       return std::nullopt;
 
     return Location{interval->getLocId(), interval->isOnStack()};

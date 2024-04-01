@@ -96,12 +96,13 @@ TEST_F(RegAllocTest, lecture)
   buildRegAllocator();
 
   EXPECT_TRUE(checkLocation(insns[0], {0, false}));
-  EXPECT_TRUE(checkLocation(insns[1], {4, false}));
-  EXPECT_TRUE(checkLocation(insns[2], {6, false}));
-  EXPECT_TRUE(checkLocation(insns[3], {10, false}));
-  EXPECT_TRUE(checkLocation(insns[4], {10, false}));
-  EXPECT_TRUE(checkLocation(insns[5], {12, false}));
-  EXPECT_TRUE(checkLocation(insns[7], {18, false}));
-  EXPECT_TRUE(checkLocation(insns[8], {20, false}));
-  EXPECT_TRUE(checkLocation(insns[9], {26, false}));
+  EXPECT_TRUE(checkLocation(insns[1], {1, false}));
+  EXPECT_TRUE(checkLocation(insns[2], {1, true}));
+  EXPECT_TRUE(checkLocation(insns[3], {0, true}));
+  EXPECT_TRUE(checkLocation(insns[4], {1, false}));
+  EXPECT_TRUE(checkLocation(insns[5], {2, false}));
+  EXPECT_FALSE(checkLocation(insns[6], {}));
+  EXPECT_TRUE(checkLocation(insns[7], {2, false}));
+  EXPECT_TRUE(checkLocation(insns[8], {1, false}));
+  EXPECT_TRUE(checkLocation(insns[9], {0, false}));
 }
