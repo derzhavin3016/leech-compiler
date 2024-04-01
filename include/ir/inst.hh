@@ -318,6 +318,25 @@ public:
   {}
 };
 
+[[nodiscard]] inline bool producesValue(const Inst &inst)
+{
+  switch (inst.getInstType())
+  {
+  case InstType::kConst:
+  case InstType::kBinOp:
+  case InstType::kCast:
+  case InstType::kPhi:
+    return true;
+  case InstType::kJump:
+  case InstType::kRet:
+  case InstType::kIf:
+    return false;
+  case InstType::kUnknown:
+  default:
+    LJIT_UNREACHABLE("Unknown instruction");
+  }
+}
+
 } // namespace ljit
 
 #endif /* LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED */

@@ -156,6 +156,7 @@ private:
 
   void calcLiveRanges()
   {
+    std::vector<Inst *> toZero{};
     for (auto it = m_linearOrder.crbegin(); it != m_linearOrder.crend(); ++it)
     {
       auto &block = **it;
@@ -183,6 +184,8 @@ private:
       {
         if (inst.getInstType() == InstType::kPhi)
           initLiveSet.erase(&inst);
+        if (!producesValue(inst))
+          toZero.push_back(&inst);
       }
 
       if (const auto *const loopInfo = m_loops.getLoopInfo(&block);
@@ -193,6 +196,16 @@ private:
         for (auto *v : initLiveSet)
           updateLiveInterval(v, {start, end});
       }
+    }
+
+    for (auto *const inst : toZero)
+    {
+      const auto foundIt = m_liveIntervals.find(inst);
+      LJIT_ASSERT(foundIt != m_liveIntervals.end());
+
+      // Reduce interval to empty (this instruction does not produce any value)
+      auto &liveIn = foundIt->second;
+      liveIn.setEnd(liveIn.getStart());
     }
   }
 
