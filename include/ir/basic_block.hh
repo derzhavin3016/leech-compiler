@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
