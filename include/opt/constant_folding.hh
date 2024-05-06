@@ -139,7 +139,14 @@ private:
       res = static_cast<T>(lval - rval);
       break;
     case BinOp::Oper::kMul:
-      res = static_cast<T>(lval * rval);
+      if constexpr (std::is_same_v<T, bool>)
+      {
+        res = static_cast<T>(lval && rval);
+      }
+      else
+      {
+        res = static_cast<T>(lval * rval);
+      }
       break;
     case BinOp::Oper::kLE:
       res = static_cast<T>(lval < rval);
