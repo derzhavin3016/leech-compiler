@@ -33,18 +33,62 @@ enum class Type
   I32,
   I64,
 };
-
+class Inst;
 class Value
 {
+public:
+  enum class Category : bool
+  {
+    kInst,
+    kParam,
+  };
+
+private:
   Type m_type{Type::None};
+  Category m_cat{Category::kInst};
+  std::vector<Inst *> m_users{};
 
 public:
+  auto &users()
+  {
+    return m_users;
+  }
+
   Value() = default;
+
   explicit Value(Type type) noexcept : m_type(type)
   {}
+
+  explicit Value(Type type, Category cat) noexcept : m_type(type), m_cat(cat)
+  {}
+
   [[nodiscard]] auto getType() const noexcept
   {
     return m_type;
+  }
+
+  [[nodiscard]] bool isInst() const
+  {
+    return m_cat == Category::kInst;
+  }
+  [[nodiscard]] auto usersBegin() const
+  {
+    return m_users.begin();
+  }
+
+  [[nodiscard]] auto usersBegin()
+  {
+    return m_users.begin();
+  }
+
+  [[nodiscard]] auto usersEnd() const
+  {
+    return m_users.end();
+  }
+
+  [[nodiscard]] auto usersEnd()
+  {
+    return m_users.end();
   }
 };
 
@@ -56,6 +100,7 @@ class Inst : public Value, public IListNode
   BasicBlock *m_bb{nullptr};
   std::size_t m_liveNum{};
   std::size_t m_linearNum{};
+  std::vector<Value *> m_inputs{};
 
 protected:
   explicit Inst(InstType iType) noexcept : m_iType(iType)
@@ -64,10 +109,22 @@ protected:
     : Value(type), m_iType(iType)
   {}
 
+  auto &inputs()
+  {
+    return m_inputs;
+  }
+
 public:
   LJIT_NO_COPY_SEMANTICS(Inst);
   LJIT_NO_MOVE_SEMANTICS(Inst);
   virtual ~Inst() = default;
+
+  void addInput(Value *val)
+  {
+    LJIT_ASSERT(val != nullptr);
+    val->users().push_back(this);
+    m_inputs.push_back(val);
+  }
 
   [[nodiscard]] auto getBB() const noexcept
   {
@@ -99,6 +156,33 @@ public:
   {
     return m_iType;
   }
+
+  [[nodiscard]] auto inputAt(std::size_t idx) const
+  {
+    LJIT_ASSERT(idx < m_inputs.size());
+    return m_inputs[idx];
+  }
+
+  [[nodiscard]] auto inputBegin() const
+  {
+    return m_inputs.begin();
+  }
+
+  [[nodiscard]] auto inputBegin()
+  {
+    return m_inputs.begin();
+  }
+
+  [[nodiscard]] auto inputEnd() const
+  {
+    return m_inputs.end();
+  }
+
+  [[nodiscard]] auto inputEnd()
+  {
+    return m_inputs.end();
+  }
+
   virtual void print(std::ostream &ost) const = 0;
 };
 
@@ -117,8 +201,10 @@ class ConstVal final
   template <>                                                                  \
   class ConstVal<valTy> final : public Inst                                    \
   {                                                                            \
+  public:                                                                      \
     using ValueT = valTy;                                                      \
                                                                                \
+  private:                                                                     \
     ValueT m_value{};                                                          \
                                                                                \
   public:                                                                      \
@@ -154,18 +240,19 @@ class BasicBlock;
 
 class IfInstr final : public Inst
 {
-  Value *m_cond{nullptr};
   BasicBlock *m_true{nullptr};
   BasicBlock *m_false{nullptr};
 
 public:
   IfInstr(Value *cond, BasicBlock *trueBB, BasicBlock *falseBB)
-    : Inst(InstType::kIf), m_cond(cond), m_true(trueBB), m_false(falseBB)
-  {}
+    : Inst(InstType::kIf), m_true(trueBB), m_false(falseBB)
+  {
+    addInput(cond);
+  }
 
   [[nodiscard]] auto *getCond() const noexcept
   {
-    return m_cond;
+    return inputAt(0);
   }
   [[nodiscard]] auto *getTrueBB() const noexcept
   {
@@ -214,6 +301,7 @@ public:
   void addNode(Value *val, BasicBlock *bb)
   {
     m_vars.push_back(PhiEntry{val, bb});
+    addInput(val);
   }
 
   [[nodiscard]] auto begin()
@@ -250,21 +338,20 @@ public:
     kMul,
     kLE,
     kEQ,
+    kShr,
+    kOr,
   };
 
 private:
   Oper m_oper{};
-  Value *m_lhs{nullptr};
-  Value *m_rhs{nullptr};
 
 public:
   BinOp(Oper oper, Value *lhs, Value *rhs)
-    : Inst(rhs->getType(), InstType::kBinOp),
-      m_oper(oper),
-      m_lhs(lhs),
-      m_rhs(rhs)
+    : Inst(rhs->getType(), InstType::kBinOp), m_oper(oper)
   {
     LJIT_ASSERT(lhs->getType() == rhs->getType());
+    addInput(lhs);
+    addInput(rhs);
   }
 
   [[nodiscard]] auto getOper() const noexcept
@@ -273,11 +360,11 @@ public:
   }
   [[nodiscard]] auto getLeft() const noexcept
   {
-    return m_lhs;
+    return inputAt(0);
   }
   [[nodiscard]] auto getRight() const noexcept
   {
-    return m_rhs;
+    return inputAt(1);
   }
 
   void print([[maybe_unused]] std::ostream &ost) const override
@@ -286,15 +373,15 @@ public:
 
 class Ret final : public Inst
 {
-  Value *m_toRet{nullptr};
-
 public:
-  explicit Ret(Value *toRet) : Inst(InstType::kRet), m_toRet(toRet)
-  {}
+  explicit Ret(Value *toRet) : Inst(InstType::kRet)
+  {
+    addInput(toRet);
+  }
 
   [[nodiscard]] auto getVal() const noexcept
   {
-    return m_toRet;
+    return inputAt(0);
   }
 
   void print([[maybe_unused]] std::ostream &ost) const override
@@ -303,15 +390,15 @@ public:
 
 class Cast final : public Inst
 {
-  Value *m_srcV{};
-
 public:
-  Cast(Type destT, Value *srcV) : Inst(destT, InstType::kCast), m_srcV(srcV)
-  {}
+  Cast(Type destT, Value *srcV) : Inst(destT, InstType::kCast)
+  {
+    addInput(srcV);
+  }
 
   [[nodiscard]] auto getSrc() const noexcept
   {
-    return m_srcV;
+    return inputAt(0);
   }
 
   void print([[maybe_unused]] std::ostream &ost) const override

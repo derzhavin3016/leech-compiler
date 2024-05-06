@@ -11,7 +11,7 @@ namespace ljit
 
 struct Param final : public Value, public IListNode
 {
-  explicit Param(Type type) : Value(type)
+  explicit Param(Type type) : Value(type, Value::Category::kParam)
   {}
 };
 

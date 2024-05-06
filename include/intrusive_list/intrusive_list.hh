@@ -407,12 +407,21 @@ private:
 template <class T>
 using IList = IListImpl<T, IListAllocTraits<T>>;
 
-template <class T, class... Args, class NodeTy>
+template <class T, class NodeTy, class... Args>
+[[nodiscard]] auto &emplaceToList(IList<NodeTy> &ilist,
+                                  typename IList<NodeTy>::iterator pos,
+                                  Args &&...args)
+{
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+  auto *const toEmplace = new T{std::forward<Args>(args)...};
+  ilist.insert(pos, toEmplace);
+  return *toEmplace;
+}
+
+template <class T, class NodeTy, class... Args>
 [[nodiscard]] auto &emplaceBackToList(IList<NodeTy> &ilist, Args &&...args)
 {
-  auto *const toEmplace = new T{std::forward<Args>(args)...};
-  ilist.push_back(toEmplace);
-  return *toEmplace;
+  return emplaceToList<T>(ilist, ilist.end(), std::forward<Args>(args)...);
 }
 
 template <class T>
