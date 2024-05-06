@@ -14,6 +14,7 @@
 #include <limits>
 #include <memory>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 
 namespace ljit
@@ -132,19 +133,19 @@ private:
     switch (oper)
     {
     case BinOp::Oper::kAdd:
-      res = lval + rval;
+      res = static_cast<T>(lval + rval);
       break;
     case BinOp::Oper::kSub:
-      res = lval - rval;
+      res = static_cast<T>(lval - rval);
       break;
     case BinOp::Oper::kMul:
-      res = lval * rval;
+      res = static_cast<T>(lval * rval);
       break;
     case BinOp::Oper::kLE:
-      res = lval < rval;
+      res = static_cast<T>(lval < rval);
       break;
     case BinOp::Oper::kEQ:
-      res = lval == rval;
+      res = static_cast<T>(lval == rval);
       break;
     case BinOp::Oper::kShr: {
       constexpr auto kWidth = std::numeric_limits<T>::digits;
@@ -155,15 +156,18 @@ private:
            << ") exceeds the width of type (" << kWidth << ")";
         throw ArithmeticError{ss.str()};
       }
-      if (rval < 0)
+      if constexpr (!std::is_same_v<T, bool>)
       {
-        throw ArithmeticError{"Shamt is negative"};
+        if (rval < 0)
+        {
+          throw ArithmeticError{"Shamt is negative"};
+        }
       }
-      res = lval >> rval;
+      res = static_cast<T>(lval >> rval);
       break;
     }
     case BinOp::Oper::kOr: {
-      res = lval | rval;
+      res = static_cast<T>(lval | rval);
       break;
     }
     default:
