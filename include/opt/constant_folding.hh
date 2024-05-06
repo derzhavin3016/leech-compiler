@@ -82,7 +82,12 @@ private:
       const auto &cast = static_cast<Cast &>(inst);
       return tryRetrieveConst(cast.getSrc()) != nullptr;
     }
-
+    case InstType::kConst:
+    case InstType::kIf:
+    case InstType::kJump:
+    case InstType::kPhi:
+    case InstType::kRet:
+    case InstType::kUnknown:
     default:
       return false;
     }
@@ -101,6 +106,12 @@ private:
       DO_FOLD(Cast)
 
 #undef DO_FOLD
+    case InstType::kConst:
+    case InstType::kIf:
+    case InstType::kJump:
+    case InstType::kPhi:
+    case InstType::kRet:
+    case InstType::kUnknown:
     default:
       break;
     }
