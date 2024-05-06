@@ -1,21 +1,23 @@
 #ifndef LEECH_JIT_INCLUDE_OPT_CONSTANT_FOLDING_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_OPT_CONSTANT_FOLDING_HH_INCLUDED
 
-#include "common/common.hh"
-#include "common/error.hh"
-#include "graph/dfs.hh"
-#include "graph/graph_traits.hh"
-#include "ir/basic_block.hh"
-#include "ir/inst.hh"
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <iterator>
 #include <limits>
 #include <memory>
 #include <sstream>
 #include <type_traits>
 #include <vector>
+
+#include "common/common.hh"
+#include "common/error.hh"
+#include "graph/dfs.hh"
+#include "graph/graph_traits.hh"
+#include "ir/basic_block.hh"
+#include "ir/inst.hh"
 
 namespace ljit
 {
@@ -27,7 +29,7 @@ class ConstantFolding
 
   // Add + Shr + Or
 public:
-  void run(GraphTy &graph)
+  void run(const GraphTy &graph)
   {
     findFoldable(graph);
 
@@ -204,25 +206,23 @@ private:
     const auto valTy = lval->getType();
 
     LJIT_ASSERT(lval->getType() == rval->getType());
-    std::unique_ptr<Inst> res;
 
     switch (valTy)
     {
     case Type::I1:
-      res = binEval<bool>(inst.getOper(), lval, rval);
-      break;
-    case Type::I8:
-      res = binEval<std::int8_t>(inst.getOper(), lval, rval);
-      break;
-    case Type::I16:
-      res = binEval<std::int16_t>(inst.getOper(), lval, rval);
-      break;
-    case Type::I32:
-      res = binEval<std::int32_t>(inst.getOper(), lval, rval);
-      break;
-    case Type::I64:
-      res = binEval<std::int64_t>(inst.getOper(), lval, rval);
-      break;
+      return binEval<bool>(inst.getOper(), lval, rval);
+
+#define DO_FOLD(width)                                                         \
+  case Type::I##width:                                                         \
+    return binEval<std::int##width##_t>(inst.getOper(), lval, rval);
+
+      DO_FOLD(8)
+      DO_FOLD(16)
+      DO_FOLD(32)
+      DO_FOLD(64)
+
+#undef DO_FOLD
+
     case Type::None:
     default:
       break;
@@ -244,14 +244,17 @@ private:
     {
     case Type::I1:
       return castEval<bool>(srcV);
-    case Type::I8:
-      return castEval<std::int8_t>(srcV);
-    case Type::I16:
-      return castEval<std::int16_t>(srcV);
-    case Type::I32:
-      return castEval<std::int32_t>(srcV);
-    case Type::I64:
-      return castEval<std::int64_t>(srcV);
+
+#define DO_FOLD(width)                                                         \
+  case Type::I##width:                                                         \
+    return castEval<std::int##width##_t>(srcV);
+
+      DO_FOLD(8)
+      DO_FOLD(16)
+      DO_FOLD(32)
+      DO_FOLD(64)
+
+#undef DO_FOLD
     case Type::None:
     default:
       LJIT_UNREACHABLE("Bad type");
