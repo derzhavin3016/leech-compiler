@@ -37,10 +37,10 @@ public:
       auto newInst = fold(rInst);
       auto *const bb = rInst.getBB();
       // Remove inputs
-      std::for_each(rInst.inputBegin(), rInst.inputEnd(), [](auto *inst) {
-        if (inst->isInst() && inst->users().size() == 1)
+      std::for_each(rInst.inputBegin(), rInst.inputEnd(), [](auto *val) {
+        if (val->isInst() && val->users().size() == 1)
         {
-          auto *const pInst = static_cast<Inst *>(inst);
+          auto *const pInst = static_cast<Inst *>(val);
           pInst->getBB()->eraseInst(pInst);
         }
       });
