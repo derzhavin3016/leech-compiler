@@ -36,6 +36,15 @@ public:
       auto &rInst = inst.get();
       auto newInst = fold(rInst);
       auto *const bb = rInst.getBB();
+      // Remove inputs
+      std::for_each(rInst.inputBegin(), rInst.inputEnd(), [](auto *inst) {
+        if (inst->isInst() && inst->users().size() == 1)
+        {
+          auto *const pInst = static_cast<Inst *>(inst);
+          pInst->getBB()->eraseInst(pInst);
+        }
+      });
+
       bb->replaceInst(&rInst, newInst.release());
     }
   }

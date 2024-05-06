@@ -1,6 +1,7 @@
 #ifndef LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED
 #define LEECH_JIT_INCLUDE_IR_INST_HH_INCLUDED
 
+#include <algorithm>
 #include <cstdint>
 #include <ostream>
 #include <type_traits>
@@ -49,7 +50,12 @@ private:
   std::vector<Inst *> m_users{};
 
 public:
-  auto &users()
+  [[nodiscard]] auto &users()
+  {
+    return m_users;
+  }
+
+  [[nodiscard]] auto &users() const
   {
     return m_users;
   }
@@ -109,7 +115,12 @@ protected:
     : Value(type), m_iType(iType)
   {}
 
-  auto &inputs()
+  [[nodiscard]] auto &inputs()
+  {
+    return m_inputs;
+  }
+
+  [[nodiscard]] auto &inputs() const
   {
     return m_inputs;
   }
@@ -181,6 +192,15 @@ public:
   [[nodiscard]] auto inputEnd()
   {
     return m_inputs.end();
+  }
+
+  void setUsersFrom(Inst &other)
+  {
+    users() = other.users();
+    for (auto *user : users())
+    {
+      std::replace(user->inputBegin(), user->inputEnd(), &other, this);
+    }
   }
 
   virtual void print(std::ostream &ost) const = 0;

@@ -255,8 +255,14 @@ public:
     return toIns;
   }
 
+  void eraseInst(Inst *toErase)
+  {
+    m_instructions.erase(InstIter{toErase});
+  }
+
   void replaceInst(Inst *old, Inst *newInst)
   {
+    newInst->setUsersFrom(*old);
     m_instructions.insert(m_instructions.erase(InstIter{old}), newInst);
   }
 
