@@ -95,6 +95,7 @@ private:
     case BinOp::Oper::kMul:
     case BinOp::Oper::kLE:
     case BinOp::Oper::kEQ:
+    default:
       break;
     }
 
