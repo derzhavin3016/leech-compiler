@@ -6,7 +6,6 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
-#include <optional>
 #include <ostream>
 #include <sstream>
 #include <stdexcept>
@@ -133,7 +132,9 @@ inline std::ostream &operator<<(std::ostream &ost, const LiveInterval &interval)
 
 class BasicBlock final : public IListNode
 {
-  IList<Inst> m_instructions{};
+  using InstList = IList<Inst>;
+  using InstIter = InstList::iterator;
+  InstList m_instructions{};
   std::vector<BasicBlock *> m_pred{};
   std::vector<BasicBlock *> m_succ{};
   std::size_t m_id{};
@@ -254,6 +255,24 @@ public:
     return toIns;
   }
 
+  void eraseInst(Inst *toErase)
+  {
+    m_instructions.erase(InstIter{toErase});
+  }
+
+  void replaceInst(Inst *old, Inst *newInst)
+  {
+    newInst->setUsersFrom(*old);
+    m_instructions.insert(m_instructions.erase(InstIter{old}), newInst);
+  }
+
+  template <typename T, typename... Args>
+  void replaceInstEmplace(Inst *old, Args &&...args)
+  {
+    const auto pos = m_instructions.erase(InstIter{old});
+    emplaceToList<T>(m_instructions, pos, std::forward<Args>(args)...);
+  }
+
   void print(std::ostream &ost) const
   {
     ost << '%' << m_id << ":\n";
@@ -290,6 +309,12 @@ private:
     m_succ.push_back(bb);
   }
 };
+
+inline void removeInst(Inst *inst)
+{
+  inst->clearInputs();
+  inst->getBB()->eraseInst(inst);
+}
 
 class BasicBlockGraph final
 {

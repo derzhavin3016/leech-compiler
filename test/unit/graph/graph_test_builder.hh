@@ -24,6 +24,11 @@ protected:
     std::generate(bbs.begin(), bbs.end(), [this] { return func->appendBB(); });
   }
 
+  [[nodiscard]] auto makeGraph() const
+  {
+    return func->makeBBGraph();
+  }
+
   void makeEdge(std::size_t idPred, std::size_t idSucc)
   {
     bbs.at(idPred)->linkSucc(bbs.at(idSucc));
