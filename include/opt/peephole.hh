@@ -88,7 +88,9 @@ private:
     case BinOp::Oper::kAdd:
       return doAdd(binop);
     case BinOp::Oper::kShr:
+      return doShr(binop);
     case BinOp::Oper::kOr:
+      return doOr(binop);
     case BinOp::Oper::kSub:
     case BinOp::Oper::kMul:
     case BinOp::Oper::kLE:
