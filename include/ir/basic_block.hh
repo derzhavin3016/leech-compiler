@@ -310,6 +310,12 @@ private:
   }
 };
 
+inline void removeInst(Inst *inst)
+{
+  inst->clearInputs();
+  inst->getBB()->eraseInst(inst);
+}
+
 class BasicBlockGraph final
 {
 public:

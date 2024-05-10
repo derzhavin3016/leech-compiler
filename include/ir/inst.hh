@@ -3,8 +3,11 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <iterator>
 #include <ostream>
 #include <type_traits>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include "common/common.hh"
@@ -47,7 +50,7 @@ public:
 private:
   Type m_type{Type::None};
   Category m_cat{Category::kInst};
-  std::vector<Inst *> m_users{};
+  std::unordered_set<Inst *> m_users{};
 
 public:
   [[nodiscard]] auto &users()
@@ -96,6 +99,8 @@ public:
   {
     return m_users.end();
   }
+
+  void setUsersFrom(Value &other);
 };
 
 class BasicBlock;
@@ -133,7 +138,8 @@ public:
   void addInput(Value *val)
   {
     LJIT_ASSERT(val != nullptr);
-    val->users().push_back(this);
+    [[maybe_unused]] const auto wasNew = val->users().insert(this).second;
+    LJIT_ASSERT(wasNew);
     m_inputs.push_back(val);
   }
 
@@ -174,6 +180,37 @@ public:
     return m_inputs[idx];
   }
 
+  void setInput(std::size_t idx, Value *newInput)
+  {
+    LJIT_ASSERT(idx < m_inputs.size());
+
+    auto &inp = m_inputs[idx];
+    if (std::count(m_inputs.begin(), m_inputs.end(), inp) == 1)
+    {
+      inp->users().erase(this);
+    }
+    inp = newInput;
+    inp->users().insert(this);
+  }
+
+  void clearInputs()
+  {
+    for (auto *input : m_inputs)
+    {
+      [[maybe_unused]] const bool removed = input->users().erase(this) != 0;
+      LJIT_ASSERT(removed);
+    }
+
+    m_inputs.clear();
+  }
+
+  void swapInputs(std::size_t lhs, std::size_t rhs)
+  {
+    LJIT_ASSERT(lhs < m_inputs.size());
+    LJIT_ASSERT(rhs < m_inputs.size());
+    std::swap(m_inputs[lhs], m_inputs[rhs]);
+  }
+
   [[nodiscard]] auto inputBegin() const
   {
     return m_inputs.begin();
@@ -194,17 +231,20 @@ public:
     return m_inputs.end();
   }
 
-  void setUsersFrom(Inst &other)
-  {
-    users() = other.users();
-    for (auto *user : users())
-    {
-      std::replace(user->inputBegin(), user->inputEnd(), &other, this);
-    }
-  }
-
   virtual void print(std::ostream &ost) const = 0;
 };
+
+inline void Value::setUsersFrom(Value &other)
+{
+  auto &usrs = users();
+  usrs.merge(other.users());
+  other.users().clear();
+
+  for (auto *user : usrs)
+  {
+    std::replace(user->inputBegin(), user->inputEnd(), &other, this);
+  }
+}
 
 template <class... Args>
 struct AlwaysFalse : std::false_type
@@ -442,6 +482,20 @@ public:
   default:
     LJIT_UNREACHABLE("Unknown instruction");
   }
+}
+
+inline const Inst *tryRetrieveConst(const Value *val)
+{
+  // Check for instruction
+  if (!val->isInst())
+    return nullptr;
+
+  const auto *const pInst = static_cast<const Inst *>(val);
+  // Check for const
+  if (pInst->getInstType() != InstType::kConst)
+    return nullptr;
+
+  return pInst;
 }
 
 } // namespace ljit

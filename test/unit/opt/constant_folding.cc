@@ -24,8 +24,8 @@ TEST_F(ConstFoldTest, addSimple)
   // Act
   cFold.run(graph);
   // Assert
-  ASSERT_EQ(bbs[0]->size(), 1);
-  const auto &inst = bbs[0]->getFirst();
+  ASSERT_EQ(bbs[0]->size(), 3);
+  const auto &inst = bbs[0]->getLast();
   ASSERT_EQ(inst.getInstType(), ljit::InstType::kConst);
   ASSERT_EQ(inst.getType(), ljit::Type::I64);
   const auto &const_ = static_cast<const ljit::ConstVal_I64 &>(inst);
@@ -43,8 +43,8 @@ TEST_F(ConstFoldTest, shrSimple)
   // Act
   cFold.run(graph);
   // Assert
-  ASSERT_EQ(bbs[0]->size(), 1);
-  const auto &inst = bbs[0]->getFirst();
+  ASSERT_EQ(bbs[0]->size(), 3);
+  const auto &inst = bbs[0]->getLast();
   ASSERT_EQ(inst.getInstType(), ljit::InstType::kConst);
   ASSERT_EQ(inst.getType(), ljit::Type::I64);
   const auto &const_ = static_cast<const ljit::ConstVal_I64 &>(inst);
@@ -62,8 +62,8 @@ TEST_F(ConstFoldTest, orSimple)
   // Act
   cFold.run(graph);
   // Assert
-  ASSERT_EQ(bbs[0]->size(), 1);
-  const auto &inst = bbs[0]->getFirst();
+  ASSERT_EQ(bbs[0]->size(), 3);
+  const auto &inst = bbs[0]->getLast();
   ASSERT_EQ(inst.getInstType(), ljit::InstType::kConst);
   ASSERT_EQ(inst.getType(), ljit::Type::I64);
   const auto &const_ = static_cast<const ljit::ConstVal_I64 &>(inst);

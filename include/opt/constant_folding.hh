@@ -15,7 +15,6 @@
 #include "common/common.hh"
 #include "common/error.hh"
 #include "graph/dfs.hh"
-#include "graph/graph_traits.hh"
 #include "ir/basic_block.hh"
 #include "ir/inst.hh"
 
@@ -39,13 +38,7 @@ public:
       auto newInst = fold(rInst);
       auto *const bb = rInst.getBB();
       // Remove inputs
-      std::for_each(rInst.inputBegin(), rInst.inputEnd(), [](auto *val) {
-        if (val->isInst() && val->users().size() == 1)
-        {
-          auto *const pInst = static_cast<Inst *>(val);
-          pInst->getBB()->eraseInst(pInst);
-        }
-      });
+      rInst.clearInputs();
 
       bb->replaceInst(&rInst, newInst.release());
     }
@@ -64,20 +57,6 @@ private:
     }
 
     m_toFold.swap(toFold);
-  }
-
-  static const Inst *tryRetrieveConst(const Value *val)
-  {
-    // Check for instruction
-    if (!val->isInst())
-      return nullptr;
-
-    const auto *const pInst = static_cast<const Inst *>(val);
-    // Check for const
-    if (pInst->getInstType() != InstType::kConst)
-      return nullptr;
-
-    return pInst;
   }
 
   [[nodiscard]] static bool foldable(Inst &inst)
