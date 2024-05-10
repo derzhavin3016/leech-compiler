@@ -138,8 +138,7 @@ public:
   void addInput(Value *val)
   {
     LJIT_ASSERT(val != nullptr);
-    [[maybe_unused]] const auto wasNew = val->users().insert(this).second;
-    LJIT_ASSERT(wasNew);
+    val->users().insert(this);
     m_inputs.push_back(val);
   }
 
