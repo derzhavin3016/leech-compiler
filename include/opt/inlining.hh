@@ -7,6 +7,9 @@
 #include "ir/function.hh"
 #include "ir/inst.hh"
 #include <algorithm>
+#include <functional>
+#include <iterator>
+#include <vector>
 
 namespace ljit
 {
@@ -20,27 +23,30 @@ public:
 
   void run()
   {
-    auto &&bbs = graph::depthFirstSearchReversePostOrder(m_func->makeBBGraph());
-
-    for (auto *const bb : bbs)
-    {
-      for (auto &inst : *bb)
-      {
-        if (inst.getInstType() == InstType::kCall)
-        {
-          doInline(static_cast<Call &>(inst));
-        }
-      }
-    }
+    fillCandidates();
+    for (auto &inst : m_candidates)
+      doInline(static_cast<Call &>(inst.get()));
   }
 
 private:
-  auto *splitBBAfter(BasicBlock *bb, Inst *inst)
+  void fillCandidates()
+  {
+    auto &&bbs = graph::depthFirstSearchReversePostOrder(m_func->makeBBGraph());
+    m_candidates.clear();
+    for (auto *const bb : bbs)
+    {
+      std::copy_if(
+        bb->begin(), bb->end(), std::back_inserter(m_candidates),
+        [](Inst &inst) { return inst.getInstType() == InstType::kCall; });
+    }
+  }
+
+  auto *splitBBAfter(Inst *inst)
   {
     auto *const newBB = m_func->appendBB();
     const auto pivot = std::next(BasicBlock::iterator{inst});
 
-    newBB->splice(newBB->end(), pivot, bb->end());
+    newBB->splice(newBB->end(), pivot, inst->getBB()->end());
 
     return newBB;
   }
@@ -115,11 +121,10 @@ private:
     auto *bb = inst.getBB();
     auto *callee = inst.getCallee();
 
-    auto *afterCallBB = splitBBAfter(bb, &inst);
+    auto *afterCallBB = splitBBAfter(&inst);
 
     adjustInputs(inst, callee);
     adjustOutputs(inst, callee, afterCallBB);
-
     {
       auto *const calleeFstBB = callee->makeBBGraph().getRoot();
       bb->splice(bb->end(), *calleeFstBB);
@@ -132,6 +137,8 @@ private:
     // Remove call instruction from caller BB
     bb->eraseInst(&inst);
   }
+
+  std::vector<std::reference_wrapper<Inst>> m_candidates;
 };
 } // namespace ljit
 

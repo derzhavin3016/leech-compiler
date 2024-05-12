@@ -478,9 +478,7 @@ class Call final : public Inst
   Function *m_callee{};
 
 public:
-  Call(Function *callee, Type type)
-    : Inst(type, InstType::kCall), m_callee(callee)
-  {}
+  explicit Call(Function *callee);
 
   void appendArg(Value *arg)
   {

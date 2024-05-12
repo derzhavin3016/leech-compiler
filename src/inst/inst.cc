@@ -4,6 +4,10 @@
 
 namespace ljit
 {
+Call::Call(Function *callee)
+  : Inst(callee->getResType(), InstType::kCall), m_callee(callee)
+{}
+
 [[nodiscard]] bool Call::verify() const
 {
   if (m_callee->getResType() != getType())
