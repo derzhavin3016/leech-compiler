@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <ostream>
@@ -147,17 +148,6 @@ public:
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
 
-  [[nodiscard]] auto collectInsts(InstType type) const
-  {
-    std::vector<std::reference_wrapper<Inst>> res;
-
-    std::copy_if(m_instructions.begin(), m_instructions.end(),
-                 std::back_inserter(res),
-                 [type](auto &inst) { return inst.getInstType() == type; });
-
-    return res;
-  }
-
   [[nodiscard]] auto getId() const noexcept
   {
     return m_id;
@@ -226,6 +216,16 @@ public:
   [[nodiscard]] auto rend()
   {
     return std::reverse_iterator{begin()};
+  }
+
+  [[nodiscard]] auto collectInsts(InstType type)
+  {
+    std::vector<std::reference_wrapper<Inst>> res;
+
+    std::copy_if(begin(), end(), std::back_inserter(res),
+                 [type](Inst &inst) { return inst.getInstType() == type; });
+
+    return res;
   }
 
   [[nodiscard]] const auto &getFirst() const noexcept
