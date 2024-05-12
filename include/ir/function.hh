@@ -16,6 +16,8 @@ class Function final
   std::vector<Type> m_args{};
 
 public:
+  using BBIterator = decltype(m_bbs.begin());
+
   Function() = default;
   explicit Function(Type resTy) : m_resType(resTy)
   {}
@@ -23,6 +25,11 @@ public:
   explicit Function(Type resTy, std::vector<Type> args)
     : m_resType(resTy), m_args(std::move(args))
   {}
+
+  void splice(BBIterator pos, Function &src)
+  {
+    m_bbs.splice(pos, src.m_bbs);
+  }
 
   [[nodiscard]] auto getResType() const noexcept
   {
@@ -32,6 +39,11 @@ public:
   [[nodiscard]] const auto &getArgs() const noexcept
   {
     return m_args;
+  }
+
+  void eraseBB(BasicBlock *toErase)
+  {
+    m_bbs.erase(decltype(m_bbs.begin()){toErase});
   }
 
   auto *appendBB()

@@ -141,9 +141,22 @@ class BasicBlock final : public IListNode
   LiveInterval m_interval{};
 
 public:
+  using iterator = InstIter;
+
   BasicBlock() = default;
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
+
+  [[nodiscard]] auto collectInsts(InstType type) const
+  {
+    std::vector<std::reference_wrapper<Inst>> res;
+
+    std::copy_if(m_instructions.begin(), m_instructions.end(),
+                 std::back_inserter(res),
+                 [type](auto &inst) { return inst.getInstType() == type; });
+
+    return res;
+  }
 
   [[nodiscard]] auto getId() const noexcept
   {
@@ -215,11 +228,20 @@ public:
     return std::reverse_iterator{begin()};
   }
 
-  [[nodiscard]] auto &getFirst() const noexcept
+  [[nodiscard]] const auto &getFirst() const noexcept
   {
     return m_instructions.front();
   }
-  [[nodiscard]] auto &getLast() const noexcept
+  [[nodiscard]] const auto &getLast() const noexcept
+  {
+    return m_instructions.back();
+  }
+
+  [[nodiscard]] auto &getFirst() noexcept
+  {
+    return m_instructions.front();
+  }
+  [[nodiscard]] auto &getLast() noexcept
   {
     return m_instructions.back();
   }
@@ -232,6 +254,15 @@ public:
   [[nodiscard]] const auto &getLiveInterval() const
   {
     return m_interval;
+  }
+  template <class T, class... Args>
+  auto pushInstFront(Args &&...args)
+  {
+    auto *const toIns = static_cast<T *>(&emplaceToList<T>(
+      m_instructions, m_instructions.begin(), std::forward<Args>(args)...));
+    toIns->setBB(this);
+
+    return toIns;
   }
 
   template <class T, class... Args>
@@ -288,6 +319,16 @@ public:
   void linkPred(BasicBlock *pred)
   {
     linkBBs(pred, this);
+  }
+
+  void splice(InstIter pos, BasicBlock &other)
+  {
+    m_instructions.splice(pos, other.m_instructions);
+  }
+
+  void splice(InstIter pos, InstIter first, InstIter last)
+  {
+    m_instructions.splice(pos, first, last);
   }
 
   static void linkBBs(BasicBlock *pred, BasicBlock *succ) noexcept
