@@ -9,27 +9,35 @@
 namespace ljit
 {
 
-struct Param final : public Value, public IListNode
-{
-  explicit Param(Type type) : Value(type, Value::Category::kParam)
-  {}
-};
-
 class Function final
 {
   IList<BasicBlock> m_bbs;
-  IList<Param> m_params;
+  Type m_resType{Type::None};
+  std::vector<Type> m_args{};
 
 public:
+  Function() = default;
+  explicit Function(Type resTy) : m_resType(resTy)
+  {}
+
+  explicit Function(Type resTy, std::vector<Type> args)
+    : m_resType(resTy), m_args(std::move(args))
+  {}
+
+  [[nodiscard]] auto getResType() const noexcept
+  {
+    return m_resType;
+  }
+
+  [[nodiscard]] const auto &getArgs() const noexcept
+  {
+    return m_args;
+  }
+
   auto *appendBB()
   {
     const auto idx = m_bbs.empty() ? 0ULL : m_bbs.back().getId() + 1;
     return &emplaceBackToList<BasicBlock>(m_bbs, idx);
-  }
-
-  auto appendParam(Type type)
-  {
-    return &emplaceBackToList<Param>(m_params, type);
   }
 
   [[nodiscard]] auto makeBBGraph() const noexcept

@@ -39,8 +39,7 @@
 // }
 TEST(Builder, Fibonacci)
 {
-  auto func = ljit::Function{};
-  auto *v0 = func.appendParam(ljit::Type::I32);
+  auto func = ljit::Function{ljit::Type::None, {ljit::Type::I32}};
 
   auto *bb0 = func.appendBB();
   auto *bb1 = func.appendBB();
@@ -48,6 +47,7 @@ TEST(Builder, Fibonacci)
   auto *bb3 = func.appendBB();
 
   // build bb0
+  auto *v0 = bb0->pushInstBack<ljit::Param>(0U, ljit::Type::I32);
   auto *v1 = bb0->pushInstBack<ljit::ConstVal_I64>(1);
   auto *v2 = bb0->pushInstBack<ljit::ConstVal_I32>(2);
   bb0->pushInstBack<ljit::JumpInstr>(bb1);
