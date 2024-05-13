@@ -278,15 +278,7 @@ public:
 
     toIns->setBB(this);
 
-    if constexpr (std::is_same_v<T, IfInstr>)
-    {
-      linkSucc(toIns->getTrueBB());
-      linkSucc(toIns->getFalseBB());
-    }
-    else if constexpr (std::is_same_v<T, JumpInstr>)
-    {
-      linkSucc(toIns->getTarget());
-    }
+    updateLinks();
 
     return toIns;
   }
@@ -328,12 +320,72 @@ public:
 
   void splice(InstIter pos, BasicBlock &other)
   {
-    m_instructions.splice(pos, other.m_instructions);
+    splice(pos, other.begin(), other.end());
   }
 
   void splice(InstIter pos, InstIter first, InstIter last)
   {
+    std::for_each(first, last, [this](Inst &inst) { inst.setBB(this); });
+    const bool updateRequired = pos == m_instructions.end();
     m_instructions.splice(pos, first, last);
+
+    if (updateRequired)
+      updateLinks();
+  }
+
+  void updateLinks()
+  {
+    // cleanup succs
+    for (auto *succ : m_succ)
+    {
+      unlinkBBs(this, succ);
+    }
+
+    LJIT_ASSERT(m_succ.empty());
+
+    if (m_instructions.empty())
+    {
+      return;
+    }
+    const auto &lastInsn = m_instructions.back();
+    switch (lastInsn.getInstType())
+    {
+    case InstType::kIf: {
+      linkSucc(static_cast<const IfInstr &>(lastInsn).getTrueBB());
+      linkSucc(static_cast<const IfInstr &>(lastInsn).getFalseBB());
+      break;
+    }
+    case InstType::kJump: {
+      linkSucc(static_cast<const JumpInstr &>(lastInsn).getTarget());
+      break;
+    }
+    case InstType::kUnknown:
+    case InstType::kConst:
+    case InstType::kBinOp:
+    case InstType::kRet:
+    case InstType::kCast:
+    case InstType::kPhi:
+    case InstType::kCall:
+    case InstType::kParam:
+    default:
+      break;
+    }
+  }
+
+  static void unlinkBBs(BasicBlock *pred, BasicBlock *succ) noexcept
+  {
+    {
+      auto &preds = succ->m_pred;
+      const auto foundPred = std::find(preds.begin(), preds.end(), pred);
+      LJIT_ASSERT(foundPred != preds.end());
+      preds.erase(foundPred);
+    }
+    {
+      auto &succs = pred->m_succ;
+      const auto foundSucc = std::find(succs.begin(), succs.end(), succ);
+      LJIT_ASSERT(foundSucc != succs.end());
+      succs.erase(foundSucc);
+    }
   }
 
   static void linkBBs(BasicBlock *pred, BasicBlock *succ) noexcept

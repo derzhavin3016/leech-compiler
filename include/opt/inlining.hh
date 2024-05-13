@@ -132,11 +132,11 @@ private:
       callee->eraseBB(calleeFstBB);
     }
 
-    // Inline function into caller graph
-    m_func->splice(Function::BBIterator{afterCallBB}, *callee);
-
     // Remove call instruction from caller BB
     bb->eraseInst(&inst);
+
+    // Inline function into caller graph
+    m_func->splice(Function::BBIterator{afterCallBB}, *callee);
   }
 
   std::vector<std::reference_wrapper<Inst>> m_candidates;

@@ -356,6 +356,8 @@ class Phi final : public Inst
   std::vector<PhiEntry> m_vars{};
 
 public:
+  using Entry = PhiEntry;
+
   explicit Phi(Type type) : Inst(type, InstType::kPhi)
   {}
 

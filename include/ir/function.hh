@@ -31,6 +31,11 @@ public:
     m_bbs.splice(pos, src.m_bbs);
   }
 
+  [[nodiscard]] auto size() const
+  {
+    return m_bbs.size();
+  }
+
   [[nodiscard]] auto getResType() const noexcept
   {
     return m_resType;
