@@ -8,6 +8,7 @@
 #include "dom_tree_types.hh"
 #include "graph/dsu.hh"
 #include "graph/graph_traits.hh"
+#include "ir/inst.hh"
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -27,7 +28,13 @@ class DominatorTree final
 public:
   using Traits = GraphTraits<GraphTy>;
   using NodePtrTy = typename Traits::node_pointer;
+  [[nodiscard]] bool isDominator(Inst *dom, Inst *node) const
+  {
+    if (dom == node)
+      return true;
 
+    return isDominator(dom->getBB(), node->getBB());
+  }
   [[nodiscard]] bool isDominator(NodePtrTy dom, NodePtrTy node) const
   {
     if (node == dom)
