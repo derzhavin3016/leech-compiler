@@ -50,6 +50,7 @@ public:
       case InstType::kPhi:
       case InstType::kCall:
       case InstType::kParam:
+      default:
         break;
       }
     }
