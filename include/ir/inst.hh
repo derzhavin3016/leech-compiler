@@ -431,6 +431,7 @@ public:
     kAdd,
     kSub,
     kMul,
+    kDiv,
     kLE,
     kEQ,
     kShr,

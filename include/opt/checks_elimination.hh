@@ -15,7 +15,7 @@ class ChecksElimination
   using NodePtrTy = typename Traits::node_pointer;
 
 public:
-  void run(GraphTy &graph)
+  void run(const GraphTy &graph)
   {
     fillCandidates(graph);
     m_domTree = graph::buildDomTree(graph);
@@ -115,7 +115,7 @@ private:
     }
   }
 
-  void fillCandidates(GraphTy &graph)
+  void fillCandidates(const GraphTy &graph)
   {
     auto &&bbs = graph::depthFirstSearchReversePostOrder(graph);
     m_candidates.clear();
