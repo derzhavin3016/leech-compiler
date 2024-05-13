@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "../graph/graph_test_builder.hh"
-#include "common/common.hh"
 #include "ir/inst.hh"
 
 #include "opt/inlining.hh"
@@ -40,10 +39,10 @@ private:
     auto *v4 = bb2->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kMul, v0, v2);
     bb2->pushInstBack<ljit::Ret>(v4);
 
-    auto *v5 = bb2->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kSub, v1, v2);
-    bb2->pushInstBack<ljit::Ret>(v5);
+    auto *v5 = bb3->pushInstBack<ljit::BinOp>(ljit::BinOp::Oper::kSub, v1, v2);
+    bb3->pushInstBack<ljit::Ret>(v5);
 
-    func.swap(callee);
+    callee.swap(func);
   }
   void fillCaller()
   {
