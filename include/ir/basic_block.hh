@@ -153,6 +153,11 @@ public:
     return m_id;
   }
 
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return m_instructions.empty();
+  }
+
   [[nodiscard]] auto size() const noexcept
   {
     return m_instructions.size();

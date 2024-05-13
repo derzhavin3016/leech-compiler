@@ -81,6 +81,7 @@ private:
     std::vector<Ret *> rets;
     graph::depthFirstSearchPreOrder(
       callee->makeBBGraph(), [&rets](BasicBlock *bb) {
+        LJIT_ASSERT(!bb->empty());
         auto *lastInsn = &bb->getLast();
         if (lastInsn->getInstType() == InstType::kRet)
         {
