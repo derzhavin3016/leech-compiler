@@ -26,6 +26,8 @@ enum class InstType : std::uint8_t
   kRet,
   kCast,
   kPhi,
+  kCall,
+  kParam,
 };
 
 enum class Type
@@ -130,17 +132,17 @@ protected:
     return m_inputs;
   }
 
-public:
-  LJIT_NO_COPY_SEMANTICS(Inst);
-  LJIT_NO_MOVE_SEMANTICS(Inst);
-  virtual ~Inst() = default;
-
   void addInput(Value *val)
   {
     LJIT_ASSERT(val != nullptr);
     val->users().insert(this);
     m_inputs.push_back(val);
   }
+
+public:
+  LJIT_NO_COPY_SEMANTICS(Inst);
+  LJIT_NO_MOVE_SEMANTICS(Inst);
+  virtual ~Inst() = default;
 
   [[nodiscard]] auto getBB() const noexcept
   {
@@ -354,6 +356,8 @@ class Phi final : public Inst
   std::vector<PhiEntry> m_vars{};
 
 public:
+  using Entry = PhiEntry;
+
   explicit Phi(Type type) : Inst(type, InstType::kPhi)
   {}
 
@@ -433,6 +437,11 @@ public:
 class Ret final : public Inst
 {
 public:
+  // Ret void
+  Ret() : Inst(InstType::kRet)
+  {}
+
+  // Ret non-void
   explicit Ret(Value *toRet) : Inst(InstType::kRet)
   {
     addInput(toRet);
@@ -443,6 +452,47 @@ public:
     return inputAt(0);
   }
 
+  void print([[maybe_unused]] std::ostream &ost) const override
+  {}
+};
+
+class Param final : public Inst
+{
+  std::size_t m_idx{};
+
+public:
+  Param(std::size_t idx, Type type) : Inst(type, InstType::kParam), m_idx(idx)
+  {}
+
+  [[nodiscard]] auto getIdx() const noexcept
+  {
+    return m_idx;
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
+  {}
+};
+
+class Function;
+
+class Call final : public Inst
+{
+  Function *m_callee{};
+
+public:
+  explicit Call(Function *callee);
+
+  void appendArg(Value *arg)
+  {
+    addInput(arg);
+  }
+
+  [[nodiscard]] bool verify() const;
+
+  [[nodiscard]] auto *getCallee() const
+  {
+    return m_callee;
+  }
   void print([[maybe_unused]] std::ostream &ost) const override
   {}
 };
@@ -472,6 +522,8 @@ public:
   case InstType::kBinOp:
   case InstType::kCast:
   case InstType::kPhi:
+  case InstType::kCall:
+  case InstType::kParam:
     return true;
   case InstType::kJump:
   case InstType::kRet:

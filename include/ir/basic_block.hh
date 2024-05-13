@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <fstream>
+#include <functional>
 #include <iterator>
 #include <limits>
 #include <ostream>
@@ -141,6 +142,8 @@ class BasicBlock final : public IListNode
   LiveInterval m_interval{};
 
 public:
+  using iterator = InstIter;
+
   BasicBlock() = default;
   explicit BasicBlock(std::size_t idx) : m_id(idx)
   {}
@@ -148,6 +151,11 @@ public:
   [[nodiscard]] auto getId() const noexcept
   {
     return m_id;
+  }
+
+  [[nodiscard]] bool empty() const noexcept
+  {
+    return m_instructions.empty();
   }
 
   [[nodiscard]] auto size() const noexcept
@@ -215,11 +223,30 @@ public:
     return std::reverse_iterator{begin()};
   }
 
-  [[nodiscard]] auto &getFirst() const noexcept
+  [[nodiscard]] auto collectInsts(InstType type)
+  {
+    std::vector<std::reference_wrapper<Inst>> res;
+
+    std::copy_if(begin(), end(), std::back_inserter(res),
+                 [type](Inst &inst) { return inst.getInstType() == type; });
+
+    return res;
+  }
+
+  [[nodiscard]] const auto &getFirst() const noexcept
   {
     return m_instructions.front();
   }
-  [[nodiscard]] auto &getLast() const noexcept
+  [[nodiscard]] const auto &getLast() const noexcept
+  {
+    return m_instructions.back();
+  }
+
+  [[nodiscard]] auto &getFirst() noexcept
+  {
+    return m_instructions.front();
+  }
+  [[nodiscard]] auto &getLast() noexcept
   {
     return m_instructions.back();
   }
@@ -233,6 +260,15 @@ public:
   {
     return m_interval;
   }
+  template <class T, class... Args>
+  auto pushInstFront(Args &&...args)
+  {
+    auto *const toIns = static_cast<T *>(&emplaceToList<T>(
+      m_instructions, m_instructions.begin(), std::forward<Args>(args)...));
+    toIns->setBB(this);
+
+    return toIns;
+  }
 
   template <class T, class... Args>
   auto pushInstBack(Args &&...args)
@@ -242,15 +278,7 @@ public:
 
     toIns->setBB(this);
 
-    if constexpr (std::is_same_v<T, IfInstr>)
-    {
-      linkSucc(toIns->getTrueBB());
-      linkSucc(toIns->getFalseBB());
-    }
-    else if constexpr (std::is_same_v<T, JumpInstr>)
-    {
-      linkSucc(toIns->getTarget());
-    }
+    updateLinks();
 
     return toIns;
   }
@@ -288,6 +316,76 @@ public:
   void linkPred(BasicBlock *pred)
   {
     linkBBs(pred, this);
+  }
+
+  void splice(InstIter pos, BasicBlock &other)
+  {
+    splice(pos, other.begin(), other.end());
+  }
+
+  void splice(InstIter pos, InstIter first, InstIter last)
+  {
+    std::for_each(first, last, [this](Inst &inst) { inst.setBB(this); });
+    const bool updateRequired = pos == m_instructions.end();
+    m_instructions.splice(pos, first, last);
+
+    if (updateRequired)
+      updateLinks();
+  }
+
+  void updateLinks()
+  {
+    // cleanup succs
+    for (auto *succ : m_succ)
+    {
+      unlinkBBs(this, succ);
+    }
+
+    LJIT_ASSERT(m_succ.empty());
+
+    if (m_instructions.empty())
+    {
+      return;
+    }
+    const auto &lastInsn = m_instructions.back();
+    switch (lastInsn.getInstType())
+    {
+    case InstType::kIf: {
+      linkSucc(static_cast<const IfInstr &>(lastInsn).getTrueBB());
+      linkSucc(static_cast<const IfInstr &>(lastInsn).getFalseBB());
+      break;
+    }
+    case InstType::kJump: {
+      linkSucc(static_cast<const JumpInstr &>(lastInsn).getTarget());
+      break;
+    }
+    case InstType::kUnknown:
+    case InstType::kConst:
+    case InstType::kBinOp:
+    case InstType::kRet:
+    case InstType::kCast:
+    case InstType::kPhi:
+    case InstType::kCall:
+    case InstType::kParam:
+    default:
+      break;
+    }
+  }
+
+  static void unlinkBBs(BasicBlock *pred, BasicBlock *succ) noexcept
+  {
+    {
+      auto &preds = succ->m_pred;
+      const auto foundPred = std::find(preds.begin(), preds.end(), pred);
+      LJIT_ASSERT(foundPred != preds.end());
+      preds.erase(foundPred);
+    }
+    {
+      auto &succs = pred->m_succ;
+      const auto foundSucc = std::find(succs.begin(), succs.end(), succ);
+      LJIT_ASSERT(foundSucc != succs.end());
+      succs.erase(foundSucc);
+    }
   }
 
   static void linkBBs(BasicBlock *pred, BasicBlock *succ) noexcept

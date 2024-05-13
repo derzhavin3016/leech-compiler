@@ -3,6 +3,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "ir/function.hh"
@@ -15,10 +16,11 @@ class GraphTestBuilder : public ::testing::Test
 protected:
   GraphTestBuilder() = default;
 
-  void genBBs(std::size_t size)
+  template <typename... Args>
+  void genBBs(std::size_t size, Args &&...args)
   {
     bbs.clear();
-    func = std::make_unique<ljit::Function>();
+    func = std::make_unique<ljit::Function>(std::forward<Args>(args)...);
 
     bbs.resize(size);
     std::generate(bbs.begin(), bbs.end(), [this] { return func->appendBB(); });

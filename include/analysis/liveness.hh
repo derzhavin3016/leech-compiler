@@ -234,6 +234,10 @@ private:
     case InstType::kIf:
       consumeInput(static_cast<const IfInstr &>(inst).getCond());
       break;
+    case InstType::kCall:
+      std::for_each(inst.inputBegin(), inst.inputEnd(), consumeInput);
+      break;
+    case InstType::kParam:
     case InstType::kConst:
     case InstType::kJump:
     case InstType::kPhi:

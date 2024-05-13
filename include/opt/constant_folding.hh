@@ -76,6 +76,8 @@ private:
     case InstType::kConst:
     case InstType::kIf:
     case InstType::kJump:
+    case InstType::kParam:
+    case InstType::kCall:
     case InstType::kPhi:
     case InstType::kRet:
     case InstType::kUnknown:
@@ -101,6 +103,8 @@ private:
     case InstType::kIf:
     case InstType::kJump:
     case InstType::kPhi:
+    case InstType::kParam:
+    case InstType::kCall:
     case InstType::kRet:
     case InstType::kUnknown:
     default:

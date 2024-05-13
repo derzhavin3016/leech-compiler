@@ -280,3 +280,23 @@ TEST_F(IListPairTest, stateCheck)
   EXPECT_EQ(list.front().getElem(), val1);
   EXPECT_EQ(list.back().getElem(), val2);
 }
+
+TEST_F(IListPairTest, splice)
+{
+  // Assign
+  ljit::IList<ConcreteNode> list1;
+  ljit::IList<ConcreteNode> list2;
+  list1.push_back(node1.release());
+  list2.push_back(node2.release());
+
+  // Act
+  list1.splice(list1.end(), list2);
+
+  // Assert
+  EXPECT_EQ(list2.size(), 0);
+  EXPECT_EQ(list2.begin(), list2.end());
+
+  EXPECT_EQ(list1.size(), 2);
+  EXPECT_EQ(list1.begin()->getElem(), val1);
+  EXPECT_EQ(std::next(list1.begin())->getElem(), val2);
+}
