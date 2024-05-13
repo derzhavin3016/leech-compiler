@@ -75,6 +75,7 @@ private:
     }
     case InstType::kConst:
     case InstType::kIf:
+    case InstType::kUnaryOp:
     case InstType::kJump:
     case InstType::kParam:
     case InstType::kCall:
@@ -100,6 +101,7 @@ private:
 
 #undef DO_FOLD
     case InstType::kConst:
+    case InstType::kUnaryOp:
     case InstType::kIf:
     case InstType::kJump:
     case InstType::kPhi:
@@ -171,6 +173,8 @@ private:
       res = static_cast<T>(lval | rval);
       break;
     }
+    case BinOp::Oper::kBoundsCheck:
+    case BinOp::Oper::kDiv:
     default:
       LJIT_UNREACHABLE("Bad Oper");
     }

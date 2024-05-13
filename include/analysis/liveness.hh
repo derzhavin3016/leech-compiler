@@ -225,6 +225,10 @@ private:
       consumeInput(binop.getRight());
       break;
     }
+    case InstType::kUnaryOp: {
+      consumeInput(inst.inputAt(0));
+      break;
+    }
     case InstType::kCast:
       consumeInput(static_cast<const Cast &>(inst).getSrc());
       break;

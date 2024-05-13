@@ -362,6 +362,7 @@ public:
     case InstType::kUnknown:
     case InstType::kConst:
     case InstType::kBinOp:
+    case InstType::kUnaryOp:
     case InstType::kRet:
     case InstType::kCast:
     case InstType::kPhi:

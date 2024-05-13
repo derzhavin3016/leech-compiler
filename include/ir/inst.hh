@@ -28,6 +28,7 @@ enum class InstType : std::uint8_t
   kPhi,
   kCall,
   kParam,
+  kUnaryOp,
 };
 
 enum class Type
@@ -391,6 +392,37 @@ public:
   {}
 };
 
+class UnaryOp final : public Inst
+{
+public:
+  enum class Oper
+  {
+    kZeroCheck,
+  };
+
+private:
+  Oper m_oper{};
+
+public:
+  UnaryOp(Oper oper, Value *val)
+    : Inst(val->getType(), InstType::kUnaryOp), m_oper(oper)
+  {
+    addInput(val);
+  }
+
+  [[nodiscard]] auto getOper() const noexcept
+  {
+    return m_oper;
+  }
+  [[nodiscard]] auto getVal() const noexcept
+  {
+    return inputAt(0);
+  }
+
+  void print([[maybe_unused]] std::ostream &ost) const override
+  {}
+};
+
 class BinOp final : public Inst
 {
 public:
@@ -399,10 +431,12 @@ public:
     kAdd,
     kSub,
     kMul,
+    kDiv,
     kLE,
     kEQ,
     kShr,
     kOr,
+    kBoundsCheck,
   };
 
 private:
@@ -412,7 +446,6 @@ public:
   BinOp(Oper oper, Value *lhs, Value *rhs)
     : Inst(rhs->getType(), InstType::kBinOp), m_oper(oper)
   {
-    LJIT_ASSERT(lhs->getType() == rhs->getType());
     addInput(lhs);
     addInput(rhs);
   }
@@ -520,6 +553,7 @@ public:
   {
   case InstType::kConst:
   case InstType::kBinOp:
+  case InstType::kUnaryOp:
   case InstType::kCast:
   case InstType::kPhi:
   case InstType::kCall:

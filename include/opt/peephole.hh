@@ -51,6 +51,7 @@ private:
       return true;
 
     case InstType::kCast:
+    case InstType::kUnaryOp:
     case InstType::kConst:
     case InstType::kIf:
     case InstType::kJump:
@@ -97,6 +98,8 @@ private:
     case BinOp::Oper::kMul:
     case BinOp::Oper::kLE:
     case BinOp::Oper::kEQ:
+    case BinOp::Oper::kDiv:
+    case BinOp::Oper::kBoundsCheck:
     default:
       break;
     }
@@ -232,6 +235,7 @@ private:
     }
     case InstType::kUnknown:
     case InstType::kIf:
+    case InstType::kUnaryOp:
     case InstType::kConst:
     case InstType::kJump:
     case InstType::kRet:
