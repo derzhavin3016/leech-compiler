@@ -98,6 +98,7 @@ private:
     case BinOp::Oper::kMul:
     case BinOp::Oper::kLE:
     case BinOp::Oper::kEQ:
+    case BinOp::Oper::kDiv:
     case BinOp::Oper::kBoundsCheck:
     default:
       break;

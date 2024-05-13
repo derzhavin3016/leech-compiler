@@ -174,6 +174,7 @@ private:
       break;
     }
     case BinOp::Oper::kBoundsCheck:
+    case BinOp::Oper::kDiv:
     default:
       LJIT_UNREACHABLE("Bad Oper");
     }
